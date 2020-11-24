@@ -11,7 +11,7 @@ stdenv.mkDerivation rec {
   src = fetchFromGitHub {
     owner = "clojupyter";
     repo = "clojupyter";
-    rev = "49b9a41baf7ab284944892ea40939e5e53e6c38e";
+    rev = "0.3.2";
     sha256 = "1wphc7h74qlm9bcv5f95qhq1rq9gmcm5hvjblb01vffx996vr6jz";
   };
 
