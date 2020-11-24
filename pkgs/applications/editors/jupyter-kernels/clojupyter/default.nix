@@ -44,7 +44,7 @@ stdenv.mkDerivation rec {
     description = "A Jupyter kernel for Clojure";
     homepage = https://github.com/clojupyter/clojupyter;
     license = licenses.mit;
-    maintainers = [ maintainers.thomasjm ];
+    maintainers = with maintainers; [ thomasjm ];
     platforms = jre.meta.platforms;
   };
 }
