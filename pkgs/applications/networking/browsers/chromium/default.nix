@@ -17,6 +17,7 @@
 , ungoogled ? false # Whether to build chromium or ungoogled-chromium
 , cupsSupport ? true
 , pulseSupport ? config.pulseaudio or stdenv.isLinux
+, useSystemLibffi ? true
 , commandLineArgs ? ""
 , pkgsBuildTarget
 , pkgsBuildBuild
@@ -53,7 +54,7 @@ let
     mkChromiumDerivation = callPackage ./common.nix ({
       inherit channel chromiumVersionAtLeast versionRange;
       inherit proprietaryCodecs
-              cupsSupport pulseSupport ungoogled;
+              cupsSupport pulseSupport ungoogled useSystemLibffi;
       gnChromium = buildPackages.gn.overrideAttrs (oldAttrs: {
         inherit (upstream-info.deps.gn) version;
         src = fetchgit {
