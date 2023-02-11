@@ -8,6 +8,7 @@
 # Native build inputs:
 , ninja, pkg-config
 , python3, perl
+, makeWrapper
 , which
 , llvmPackages
 , rustc
@@ -49,6 +50,8 @@
 , proprietaryCodecs ? true
 , pulseSupport ? false, libpulseaudio ? null
 , ungoogled ? false, ungoogled-chromium
+, waylandSupport ? true
+, useSystemLibffi ? true
 # Optional dependencies:
 , libgcrypt ? null # cupsSupport
 , systemdSupport ? lib.meta.availableOn stdenv.hostPlatform systemd
@@ -154,6 +157,7 @@ let
     nativeBuildInputs = [
       ninja pkg-config
       python3WithPackages perl
+      makeWrapper
       which
       llvmPackages.bintools
       bison gperf
@@ -336,15 +340,24 @@ let
       chrome_pgo_phase = 0;
       clang_base_path = "${llvmPackages.stdenv.cc}";
       use_qt = false;
-      # To fix the build as we don't provide libffi_pic.a
-      # (ld.lld: error: unable to find library -l:libffi_pic.a):
-      use_system_libffi = true;
       # Use nixpkgs Rust compiler instead of the one shipped by Chromium.
       # We do intentionally not set rustc_version as nixpkgs will never do incremental
       # rebuilds, thus leaving this empty is fine.
       rust_sysroot_absolute = "${rustc}";
       # Building with rust is disabled for now - this matches the flags in other major distributions.
       enable_rust = false;
+    } // lib.optionalAttrs useSystemLibffi {
+      # To fix the build as we don't provide libffi_pic.a
+      # (ld.lld: error: unable to find library -l:libffi_pic.a):
+      use_system_libffi = true;
+    } // lib.optionalAttrs waylandSupport {
+      # The default value is hardcoded instead of using pkg-config:
+      system_wayland_scanner_path = "${wayland.bin}/bin/wayland-scanner";
+      # The default has changed to false. We'll build with libwayland from
+      # Nixpkgs for now but might want to eventually use the bundled libwayland
+      # as well to avoid incompatibilities (if this continues to be a problem
+      # from time to time):
+      use_system_libwayland = true;
     } // lib.optionalAttrs proprietaryCodecs {
       # enable support for the H.264 codec
       proprietary_codecs = true;
