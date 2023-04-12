@@ -7,7 +7,7 @@
 packageNames:
 
 let
-  juliaWithPackages = callPackage ../. {};
+  juliaWithPackages = callPackage ../. { precompile = false; };
 
   dependencyUuidToInfo = (juliaWithPackages packageNames).dependencyUuidToInfo;
 
