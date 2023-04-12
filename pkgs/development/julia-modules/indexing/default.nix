@@ -1,0 +1,35 @@
+{ callPackage
+, lib
+, python3
+, runCommand
+}:
+
+packageNames:
+
+let
+  juliaWithPackages = callPackage ../. {};
+
+  dependencyUuidToInfo = (juliaWithPackages packageNames).dependencyUuidToInfo;
+
+  juliaSymbolServer = juliaWithPackages (["SymbolServer"] ++ packageNames);
+
+  symbolStoreNix = runCommand "julia-indexes.nix" { buildInputs = [(python3.withPackages (ps: with ps; [toml pyyaml]))]; } ''
+    indexpackage=$(find ${juliaSymbolServer.projectAndDepot}/depot/packages/SymbolServer -name indexpackage.jl)
+    symbolServerSource=$(dirname "$indexpackage")
+
+    python ${./index_packages.py} \
+      "${dependencyUuidToInfo}" \
+      '${lib.generators.toJSON {} packageNames}' \
+      "${juliaSymbolServer}/bin/julia" \
+      "$symbolServerSource" \
+      "$out"
+  '';
+
+  uuidToSymbolStore = callPackage symbolStoreNix {
+    julia = juliaSymbolServer;
+    indexpackage = ./indexpackage.jl;
+  };
+
+in
+
+uuidToSymbolStore
