@@ -30,7 +30,7 @@ with open(out_path, "w") as f:
 
     lines = []
 
-    lines.append(f"""{uuid} = ${{runCommand "index" {{ buildInputs = [julia]; }} ''
+    lines.append(f"""{uuid} = "${{runCommand "index" {{ buildInputs = [julia]; }} ''
   mkdir -p $out
   cp -r {julia_symbolserver_src}/. .
   chmod u+w ./indexpackage.jl
@@ -43,7 +43,7 @@ with open(out_path, "w") as f:
     echo "Unexpected exit code: $?"
     exit 1
   fi
-''}}\n""")
+''}}"\n""")
 
     return "\n".join(lines)
 
