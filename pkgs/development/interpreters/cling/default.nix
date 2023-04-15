@@ -15,13 +15,11 @@
 }:
 
 let
-  # The LLVM 9 headers have a couple bugs we need to patch
-  fixedLlvmDev = runCommand "llvm-dev-${llvmPackages_9.llvm.version}" { buildInputs = [git]; } ''
-    cp -r ${llvmPackages_9.llvm.dev} $out
-    cd $out
-    chmod -R u+w include
-    git apply ${./fix-llvm-include.patch}
-  '';
+  llvmToUse = llvmPackages_9.llvm.overrideAttrs (oldAttrs: {
+    patches = oldAttrs.patches ++ [
+      ./fix-llvm-include.patch
+    ];
+  });
 
   unwrapped = stdenv.mkDerivation rec {
     pname = "cling-unwrapped";
@@ -58,12 +56,12 @@ let
     strictDeps = true;
 
     cmakeFlags = [
-      "-DLLVM_BINARY_DIR=${llvmPackages_9.llvm.out}"
-      "-DLLVM_CONFIG=${llvmPackages_9.llvm.dev}/bin/llvm-config"
-      "-DLLVM_LIBRARY_DIR=${llvmPackages_9.llvm.lib}/lib"
-      "-DLLVM_MAIN_INCLUDE_DIR=${fixedLlvmDev}/include"
-      "-DLLVM_TABLEGEN_EXE=${llvmPackages_9.llvm.out}/bin/llvm-tblgen"
-      "-DLLVM_TOOLS_BINARY_DIR=${llvmPackages_9.llvm.out}/bin"
+      "-DLLVM_BINARY_DIR=${llvmToUse.out}"
+      "-DLLVM_CONFIG=${llvmToUse.dev}/bin/llvm-config"
+      "-DLLVM_LIBRARY_DIR=${llvmToUse.lib}/lib"
+      "-DLLVM_MAIN_INCLUDE_DIR=${llvmToUse.dev}/include"
+      "-DLLVM_TABLEGEN_EXE=${llvmToUse.out}/bin/llvm-tblgen"
+      "-DLLVM_TOOLS_BINARY_DIR=${llvmToUse.out}/bin"
       "-DLLVM_TOOL_CLING_BUILD=ON"
 
       "-DLLVM_TARGETS_TO_BUILD=host;NVPTX"
