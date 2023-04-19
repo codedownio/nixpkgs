@@ -88,9 +88,9 @@ let
 
     open(ENV["out"], "w") do io
       for spec in pkgs
-          println(io, "- name: " * spec.name)
-          println(io, "  uuid: " * string(spec.uuid))
-          println(io, "  version: " * string(spec.version))
+        println(io, "- name: " * spec.name)
+        println(io, "  uuid: " * string(spec.uuid))
+        println(io, "  version: " * string(spec.version))
       end
     end
   '';
