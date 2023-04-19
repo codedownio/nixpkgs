@@ -65,6 +65,8 @@ let
     mkdir -p $out
     cp -r ${path}/. $out
     cd $out
+    chmod -R u+w .
+    rm -rf .git
     git init
     git add . -f
     git config user.email "julia2nix@localhost"
@@ -106,6 +108,8 @@ let
       mkdir -p $out
       cp -r ${info.src}/. $out
       cd $out
+      chmod -R u+w .
+      rm -rf .git
       git init
       git add . -f
       git config user.email "julia2nix@localhost"
