@@ -56,9 +56,21 @@ let
   };
 
   # Invoke Julia resolution logic to determine the full dependency closure
+  packageOverridesRepoified = lib.mapAttrs repoifySimple packageOverrides;
   closureYaml = callPackage ./package-closure.nix {
     inherit augmentedRegistry julia packageNames packageImplications;
+    packageOverrides = packageOverridesRepoified;
   };
+  repoifySimple = name: path: runCommand ''${name}-repoified'' {buildInputs = [git];} ''
+    mkdir -p $out
+    cp -r ${path}/. $out
+    cd $out
+    git init
+    git add . -f
+    git config user.email "julia2nix@localhost"
+    git config user.name "julia2nix"
+    git commit -m "Dummy commit"
+  '';
 
   # Generate a Nix file consisting of a map from dependency UUID --> package info with fetchgit call:
   # {
@@ -71,8 +83,9 @@ let
   #   ...
   # }
   dependencies = runCommand "julia-sources.nix" { buildInputs = [(python3.withPackages (ps: with ps; [toml pyyaml])) git]; } ''
-    python ${./sources_nix.py} \
+    python ${./python}/sources_nix.py \
       "${augmentedRegistry}" \
+      '${lib.generators.toJSON {} packageOverridesRepoified}' \
       "${closureYaml}" \
       "$out"
   '';
@@ -85,9 +98,10 @@ let
   #   ...
   # }
   # This is also the point where we apply the packageOverrides.
-  dependencyUuidToRepo = writeTextFile {
+  dependencyUuidToRepo = lib.mapAttrs repoify (import dependencies { inherit fetchgit; });
+  dependencyUuidToRepoYaml = writeTextFile {
     name = "dependency-uuid-to-repo.yml";
-    text = lib.generators.toYAML {} (lib.mapAttrs repoify (import dependencies { inherit fetchgit; }));
+    text = lib.generators.toYAML {} dependencyUuidToRepo;
   };
   repoify = uuid: info:
     let src = if lib.hasAttr info.name packageOverrides then lib.getAttr info.name packageOverrides else info.src; in
@@ -105,19 +119,19 @@ let
   # Given the augmented registry, closure info yaml, and dependency path yaml, construct a complete
   # Julia registry containing all the necessary packages
   minimalRegistry = runCommand "minimal-julia-registry" { buildInputs = [(python3.withPackages (ps: with ps; [toml pyyaml])) git]; } ''
-    python ${./minimal_registry.py} \
+    python ${./python}/minimal_registry.py \
       "${augmentedRegistry}" \
       "${closureYaml}" \
       '${lib.generators.toJSON {} (lib.attrNames packageOverrides)}' \
-      "${dependencyUuidToRepo}" \
+      "${dependencyUuidToRepoYaml}" \
       "$out"
   '';
 
   # Next, deal with artifacts. Scan each artifacts file individually and generate a Nix file that
   # produces the desired Overrides.toml.
   artifactsNix = runCommand "julia-artifacts.nix" { buildInputs = [(python3.withPackages (ps: with ps; [toml pyyaml]))]; } ''
-    python ${./extract_artifacts.py} \
-      "${dependencyUuidToRepo}" \
+    python ${./python}/extract_artifacts.py \
+      "${dependencyUuidToRepoYaml}" \
       "${juliaWrapped}/bin/julia" \
       "${./extract_artifacts.jl}" \
       "$out"
@@ -126,7 +140,7 @@ let
   # Import the artifacts Nix to build Overrides.toml (IFD)
   overridesTomlRaw = import artifactsNix { inherit fetchurl stdenv writeTextFile; };
   overridesToml = runCommand "Overrides.toml" { buildInputs = [(python3.withPackages (ps: with ps; [toml]))]; } ''
-    python ${./dedup_overrides.py} \
+    python ${./python}/dedup_overrides.py \
       "${overridesTomlRaw}" \
       "$out"
   '';
@@ -154,7 +168,8 @@ runCommand "julia-${julia.version}-env" {
     name = "dependency-uuid-to-info.yml";
     text = lib.generators.toYAML {} (import dependencies { inherit fetchgit; });
   };
-  inherit dependencyUuidToRepo;
+  inherit closureYaml;
+  inherit dependencyUuidToRepoYaml;
   inherit minimalRegistry;
   inherit artifactsNix;
   inherit overridesToml;

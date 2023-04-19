@@ -9,7 +9,9 @@ import subprocess
 import sys
 import tempfile
 import toml
+import util
 import yaml
+
 
 registry_path = Path(sys.argv[1])
 desired_packages_path = Path(sys.argv[2])
@@ -52,14 +54,9 @@ for (uuid, versions) in uuid_to_versions.items():
     name = registry_info["name"]
     if name in package_overrides and uuid in uuid_to_store_path:
       # Fill in the tree hash of the overridden repo
-      with tempfile.TemporaryDirectory() as home_dir:
-        env_with_home = os.environ.copy()
-        env_with_home["HOME"] = home_dir
-        subprocess.check_output(["git", "config", "--global", "--add", "safe.directory", uuid_to_store_path[uuid]], env=env_with_home)
-        lines = subprocess.check_output(["git", "log", "--pretty=raw"], cwd=uuid_to_store_path[uuid], env=env_with_home).decode().split("\n")
-        commit_info = dict([x.split() for x in lines if len(x.split()) == 2])
-        for v in versions_to_keep.values():
-            v["git-tree-sha1"] = commit_info["tree"]
+      commit_info = util.get_commit_info(uuid_to_store_path[uuid])
+      for v in versions_to_keep.values():
+        v["git-tree-sha1"] = commit_info["tree"]
     with open(out_path / path / "Versions.toml", "w") as f:
         toml.dump(versions_to_keep, f)
 
@@ -68,4 +65,4 @@ for (uuid, versions) in uuid_to_versions.items():
     package_toml = toml.load(registry_path / path / "Package.toml")
     package_toml["repo"] = "file://" + uuid_to_store_path[uuid]
     with open(out_path / path / "Package.toml", "w") as f:
-        toml.dump(package_toml, f)
+      toml.dump(package_toml, f)
