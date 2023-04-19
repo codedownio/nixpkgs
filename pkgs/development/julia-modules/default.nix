@@ -98,31 +98,40 @@ let
   #   ...
   # }
   # This is also the point where we apply the packageOverrides.
-  dependencyUuidToRepo = lib.mapAttrs repoify (import dependencies { inherit fetchgit; });
+  dependencyUuidToInfo = import dependencies { inherit fetchgit; };
+  fillInOverrideSrc = uuid: info:
+    if lib.hasAttr info.name packageOverrides then (info // { src = lib.getAttr info.name packageOverrides; }) else info;
+  repoify = uuid: info:
+    runCommand ''julia-${info.name}-${info.version}'' {buildInputs = [git];} ''
+      mkdir -p $out
+      cp -r ${info.src}/. $out
+      cd $out
+      git init
+      git add . -f
+      git config user.email "julia2nix@localhost"
+      git config user.name "julia2nix"
+      git commit -m "Dummy commit"
+    '';
+  dependencyUuidToRepo = lib.mapAttrs repoify (lib.mapAttrs fillInOverrideSrc dependencyUuidToInfo);
   dependencyUuidToRepoYaml = writeTextFile {
     name = "dependency-uuid-to-repo.yml";
     text = lib.generators.toYAML {} dependencyUuidToRepo;
   };
-  repoify = uuid: info:
-    let src = if lib.hasAttr info.name packageOverrides then lib.getAttr info.name packageOverrides else info.src; in
-      runCommand ''julia-${info.name}-${info.version}'' {buildInputs = [git];} ''
-        mkdir -p $out
-        cp -r ${src}/. $out
-        cd $out
-        git init
-        git add . -f
-        git config user.email "julia2nix@localhost"
-        git config user.name "julia2nix"
-        git commit -m "Dummy commit"
-      '';
 
   # Given the augmented registry, closure info yaml, and dependency path yaml, construct a complete
   # Julia registry containing all the necessary packages
+  dependencyUuidToInfoYaml = writeTextFile {
+    name = "dependency-uuid-to-info.yml";
+    text = lib.generators.toYAML {} dependencyUuidToInfo;
+  };
+  fillInOverrideSrc' = uuid: info:
+    if lib.hasAttr info.name packageOverridesRepoified then (info // { src = lib.getAttr info.name packageOverridesRepoified; }) else info;
+  overridesOnly = lib.mapAttrs fillInOverrideSrc' (lib.filterAttrs (uuid: info: info.src == null) dependencyUuidToInfo);
   minimalRegistry = runCommand "minimal-julia-registry" { buildInputs = [(python3.withPackages (ps: with ps; [toml pyyaml])) git]; } ''
     python ${./python}/minimal_registry.py \
       "${augmentedRegistry}" \
       "${closureYaml}" \
-      '${lib.generators.toJSON {} (lib.attrNames packageOverrides)}' \
+      '${lib.generators.toJSON {} overridesOnly}' \
       "${dependencyUuidToRepoYaml}" \
       "$out"
   '';
@@ -164,11 +173,8 @@ runCommand "julia-${julia.version}-env" {
   # Expose the steps we used along the way in case the user wants to use them, for example to build
   # expressions and build them separately to avoid IFD.
   inherit dependencies;
-  dependencyUuidToInfo = writeTextFile {
-    name = "dependency-uuid-to-info.yml";
-    text = lib.generators.toYAML {} (import dependencies { inherit fetchgit; });
-  };
   inherit closureYaml;
+  inherit dependencyUuidToInfoYaml;
   inherit dependencyUuidToRepoYaml;
   inherit minimalRegistry;
   inherit artifactsNix;

@@ -1,6 +1,7 @@
 
 import json
 from pathlib import Path
+import re
 import shutil
 import sys
 import toml
@@ -18,6 +19,13 @@ with open(desired_packages_path, "r") as f:
 
 registry = toml.load(registry_path / "Registry.toml")
 
+def ensure_version_valid(version):
+  """
+  Ensure a version string is a valid Julia-parsable version.
+  It doesn't really matter what it looks like as it's just used for overrides.
+  """
+  return re.sub('[^0-9\.]','', version)
+
 with open(out_path, "w") as f:
   f.write("{fetchgit}:\n")
   f.write("{\n")
@@ -29,7 +37,7 @@ with open(out_path, "w") as f:
       f.write(f"""  "{uuid}" = {{
     src = null; # Overridden: will fill in later
     name = "{pkg["name"]}";
-    version = "{pkg["version"]}";
+    version = "{ensure_version_valid(pkg["version"])}";
     treehash = "{treehash}";
   }};\n""")
     elif uuid in registry["packages"]:
@@ -53,6 +61,7 @@ with open(out_path, "w") as f:
     treehash = "{version_to_use["git-tree-sha1"]}";
   }};\n""")
     else:
-      print("Warning: couldn't figure out what to do with pkg in sources_nix.py", pkg)
+      # print("Warning: couldn't figure out what to do with pkg in sources_nix.py", pkg)
+      pass
 
   f.write("}")
