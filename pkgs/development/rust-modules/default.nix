@@ -43,8 +43,8 @@ let
     edition = "2018"
 
     [dependencies]
-    # rand = "0.8"
-    rand = { version = "0.8", registry = "my-registry"}
+    rand = { version = "0.8", registry = "my-registry" }
+    quote = { version = "1", registry = "my-registry" }
   '';
 
 in
@@ -57,14 +57,10 @@ runCommand "Cargo.lock" { buildInputs = [cargo]; } ''
   echo "[registries]" >> $HOME/.cargo/config.toml
   echo "my-registry = { index = \"file://${index}\" }" >> $HOME/.cargo/config.toml
 
-  echo "HERE IT IS:"
-  cat $HOME/.cargo/config.toml
-
   mkdir src
   touch src/lib.rs
 
   echo '${cargoToml}' > ./Cargo.toml
-  cat Cargo.toml
   cargo generate-lockfile
 
   mv Cargo.lock $out
