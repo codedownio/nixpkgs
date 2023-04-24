@@ -16020,6 +16020,8 @@ with pkgs;
   };
   rust = rust_1_68;
 
+  rustWithPackages = callPackage ../development/rust-modules {};
+
   mrustc = callPackage ../development/compilers/mrustc { };
   mrustc-minicargo = callPackage ../development/compilers/mrustc/minicargo.nix { };
   mrustc-bootstrap = callPackage ../development/compilers/mrustc/bootstrap.nix {
