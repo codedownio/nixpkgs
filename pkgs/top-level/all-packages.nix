@@ -15339,8 +15339,6 @@ with pkgs;
   julia-stable-bin = julia_18-bin;
   julia-bin = julia-stable-bin;
 
-  juliaWithPackages = callPackage ../development/julia-modules { };
-
   jwasm =  callPackage ../development/compilers/jwasm { };
 
   kind2 = darwin.apple_sdk_11_0.callPackage ../development/compilers/kind2 { };
