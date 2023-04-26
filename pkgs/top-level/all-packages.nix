@@ -15329,11 +15329,11 @@ with pkgs;
   julia-stable = julia_18;
   julia = julia-stable;
 
-  julia_16-bin = callPackage ../development/compilers/julia/1.6-bin.nix { };
-  julia_18-bin = callPackage ../development/compilers/julia/1.8-bin.nix { };
-
-  julia_18 = callPackage ../development/compilers/julia/1.8.nix { };
-  julia_19 = callPackage ../development/compilers/julia/1.9.nix { };
+  inherit (callPackage ../development/compilers/julia { })
+    julia_16-bin
+    julia_18-bin
+    julia_18
+    julia_19;
 
   julia-lts-bin = julia_16-bin;
   julia-stable-bin = julia_18-bin;
