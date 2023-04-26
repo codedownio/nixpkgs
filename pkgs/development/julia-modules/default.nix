@@ -12,12 +12,14 @@
 , stdenv
 
 , julia
-, extraLibs ? []
+}:
+
+{ extraLibs ? []
 , precompile ? true
 , setDefaultDepot ? true
 , makeWrapperArgs ? ""
 , packageOverrides ? {}
-}:
+}@args:
 
 packageNames:
 
