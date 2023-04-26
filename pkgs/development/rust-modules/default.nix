@@ -43,13 +43,15 @@ let
     edition = "2018"
 
     [dependencies]
-    rand = { version = "0.8", registry = "my-registry" }
-    quote = { version = "1", registry = "my-registry" }
+    rand = { version = ">=0", registry = "my-registry" }
+    quote = { version = ">=0", registry = "my-registry" }
   '';
+
+  cargo2nix = (builtins.getFlake "github:cargo2nix/cargo2nix/c149357cc3d17f2849c73eb7a09d07a307cdcfe8").packages.x86_64-linux.default;
 
 in
 
-runCommand "Cargo.lock" { buildInputs = [cargo]; } ''
+runCommand "rust-env" { buildInputs = [cargo]; } ''
   mkdir home
   export HOME=$(pwd)/home
 
@@ -57,11 +59,14 @@ runCommand "Cargo.lock" { buildInputs = [cargo]; } ''
   echo "[registries]" >> $HOME/.cargo/config.toml
   echo "my-registry = { index = \"file://${index}\" }" >> $HOME/.cargo/config.toml
 
+  mkdir -p $out
+  cd $out
+
   mkdir src
   touch src/lib.rs
 
   echo '${cargoToml}' > ./Cargo.toml
   cargo generate-lockfile
 
-  mv Cargo.lock $out
+  # ${cargo2nix}/bin/cargo2nix
 ''
