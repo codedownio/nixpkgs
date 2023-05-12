@@ -27,7 +27,7 @@ function index_package(current_package_name, current_package_version, current_pa
                 getfield(LoadingBay, current_package_name)
             end
         catch e
-            @info "Could not load package $current_package_name $current_package_version ($current_package_uuid), exiting."
+            @info "Could not load package $current_package_name $current_package_version ($current_package_uuid): $e"
             return 10
         end
 

@@ -62,6 +62,9 @@ let
     cp ${./indexpackage.jl} ./indexpackage.jl
     cp ${./index_all_packages.jl} ./index_all_packages.jl
 
+    mkdir home
+    export HOME=$(pwd)/home
+
     julia ./index_all_packages.jl \
       "./dependency_uuid_to_info.toml" \
       "$out"
@@ -69,6 +72,6 @@ let
 
 in
 
-combinedStoreSeparateDerivations
+# combinedStoreSeparateDerivations
 
-# combinedStoreThreaded
+combinedStoreThreaded
