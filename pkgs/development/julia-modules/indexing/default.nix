@@ -2,29 +2,35 @@
 , lib
 , python3
 , runCommand
+
+, indexTransitiveDependencies ? true
 }:
 
 packageNames:
 
 let
-  juliaWithPackages = callPackage ../. { precompile = false; };
+  julia = callPackage ../. {
+    precompile = true;
+    makeTransitiveDependenciesImportable = true;
+  } (packageNames ++ ["SymbolServer"]);
 
-  juliaSymbolServer = juliaWithPackages (["SymbolServer"] ++ packageNames);
+  # juliaSymbolServer = callPackage ../. {} ["SymbolServer"];
 
   symbolStoreNix = runCommand "julia-indexes.nix" { buildInputs = [(python3.withPackages (ps: with ps; [toml pyyaml]))]; } ''
-    indexpackage=$(find ${juliaSymbolServer.projectAndDepot}/depot/packages/SymbolServer -name indexpackage.jl)
+    indexpackage=$(find ${julia.projectAndDepot}/depot/packages/SymbolServer -name indexpackage.jl)
     symbolServerSource=$(dirname "$indexpackage")
 
     python ${./index_packages.py} \
-      "${(juliaWithPackages packageNames).dependencyUuidToInfoYaml}" \
+      "${julia.dependencyUuidToInfoYaml}" \
       '${lib.generators.toJSON {} packageNames}' \
-      "${juliaSymbolServer}/bin/julia" \
+      '${lib.generators.toJSON {} indexTransitiveDependencies}' \
+      "${julia}/bin/julia" \
       "$symbolServerSource" \
       "$out"
   '';
 
   uuidToSymbolStore = callPackage symbolStoreNix {
-    julia = juliaSymbolServer;
+    inherit julia;
     indexpackage = ./indexpackage.jl;
   };
 
