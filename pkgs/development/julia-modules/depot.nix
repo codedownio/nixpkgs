@@ -17,7 +17,7 @@
 }:
 
 runCommand "julia-depot" {
-    buildInputs = [curl git julia (python3.withPackages (ps: with ps; [pyyaml]))] ++ extraLibs;
+    nativeBuildInputs = [curl git julia (python3.withPackages (ps: with ps; [pyyaml]))] ++ extraLibs;
     inherit precompile registry;
   } ''
   export HOME=$(pwd)
