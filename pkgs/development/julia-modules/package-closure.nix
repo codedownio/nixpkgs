@@ -47,7 +47,7 @@ let
 
     foreach(handle_package_input!, pkgs)
 
-    # The handle_package_input! call above clears pkg.path, so we have to appy package overrides after
+    # The handle_package_input! call above clears pkg.path, so we have to apply package overrides after
     overrides = Dict{String, String}(${builtins.concatStringsSep ", " (lib.mapAttrsToList (name: path: ''"${name}" => "${path}"'') packageOverrides)})
     println("Package overrides: ")
     println(overrides)
