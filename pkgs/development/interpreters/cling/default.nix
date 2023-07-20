@@ -1,17 +1,17 @@
 { lib
-, stdenv
-, python3
-, libffi
-, git
+, clangStdenv
 , cmake
-, zlib
-, fetchgit
 , fetchFromGitHub
-, makeWrapper
-, runCommand
+, fetchgit
+, git
 , llvmPackages_9
-, glibc
+, makeWrapper
+, python3
+, runCommand
+
+, libffi
 , ncurses
+, zlib
 }:
 
 let
@@ -24,7 +24,7 @@ let
     git apply ${./fix-llvm-include.patch}
   '';
 
-  unwrapped = stdenv.mkDerivation rec {
+  unwrapped = clangStdenv.mkDerivation rec {
     pname = "cling-unwrapped";
     version = "0.9";
 
@@ -58,7 +58,7 @@ let
     ];
 
     nativeBuildInputs = [ python3 git cmake ];
-    buildInputs = [ libffi zlib ncurses ];
+    buildInputs = [ libffi ncurses zlib ];
 
     strictDeps = true;
 
@@ -69,6 +69,7 @@ let
       "-DLLVM_MAIN_INCLUDE_DIR=${fixedLlvmDev}/include"
       "-DLLVM_TABLEGEN_EXE=${llvmPackages_9.llvm.out}/bin/llvm-tblgen"
       "-DLLVM_TOOLS_BINARY_DIR=${llvmPackages_9.llvm.out}/bin"
+      "-DLLVM_BUILD_TOOLS=Off"
       "-DLLVM_TOOL_CLING_BUILD=ON"
 
       "-DLLVM_TARGETS_TO_BUILD=host;NVPTX"
@@ -81,7 +82,7 @@ let
       # "--trace-expand"
     ];
 
-    postInstall = lib.optionalString (!stdenv.isDarwin) ''
+    postInstall = lib.optionalString (!clangStdenv.isDarwin) ''
       mkdir -p $out/share/Jupyter
       cp -r /build/clang/tools/cling/tools/Jupyter/kernel $out/share/Jupyter
     '';
@@ -109,7 +110,15 @@ let
   flags = [
     "-nostdinc"
     "-nostdinc++"
-    "-isystem" "${lib.getDev stdenv.cc.libc}/include"
+
+    # System C++
+    # "-I" "${lib.getDev llvmPackages_9.libcxx}/include/c++/v1"
+    # "-L" "${llvmPackages_9.libcxx}/lib"
+
+    # System libc
+    "-isystem" "${lib.getDev clangStdenv.cc.libc}/include"
+
+    # cling includes
     "-I" "${lib.getDev unwrapped}/include"
     "-I" "${lib.getLib unwrapped}/lib/clang/9.0.1/include"
   ];
@@ -120,7 +129,7 @@ let
   # unfortunately passing -nostdinc/-nostdinc++ disables Cling's autodetection logic.
   compilerIncludeFlags = runCommand "compiler-include-flags.txt" {} ''
     export LC_ALL=C
-    ${stdenv.cc}/bin/c++ -xc++ -E -v /dev/null 2>&1 | sed -n -e '/^.include/,''${' -e '/^ \/.*++/p' -e '}' > tmp
+    ${clangStdenv.cc}/bin/c++ -xc++ -E -v /dev/null 2>&1 | sed -n -e '/^.include/,''${' -e '/^ \/.*++/p' -e '}' > tmp
     sed -e 's/^/-isystem /' -i tmp
     tr '\n' ' ' < tmp > $out
   '';
