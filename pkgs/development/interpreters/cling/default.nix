@@ -1,22 +1,30 @@
 { lib
-, stdenv
-, python3
-, libffi
-, git
+, clangStdenv
 , cmake
-, zlib
-, fetchgit
 , fetchFromGitHub
-, makeWrapper
-, runCommand
+, fetchgit
+, git
 , llvmPackages_9
-, glibc
+, makeWrapper
+, python3
+, runCommandNoCC
+
+# *NOT* from LLVM 9!
+# It would be cleanest to use LLVM 9's clang to build this, but it errors.
+# So we use a later version of Clang to compile, but we check out the Cling
+# fork of Clang 9 to build Cling against.
+, clangStdenv
+
+, libffi
 , ncurses
+, zlib
+
+, debug ? false
 }:
 
 let
   # The LLVM 9 headers have a couple bugs we need to patch
-  fixedLlvmDev = runCommand "llvm-dev-${llvmPackages_9.llvm.version}" { buildInputs = [git]; } ''
+  fixedLlvmDev = runCommandNoCC "llvm-dev-${llvmPackages_9.llvm.version}" { buildInputs = [git]; } ''
     mkdir $out
     cp -r ${llvmPackages_9.llvm.dev}/include $out
     cd $out
@@ -24,7 +32,7 @@ let
     git apply ${./fix-llvm-include.patch}
   '';
 
-  unwrapped = stdenv.mkDerivation rec {
+  unwrapped = clangStdenv.mkDerivation rec {
     pname = "cling-unwrapped";
     version = "0.9";
 
@@ -58,7 +66,7 @@ let
     ];
 
     nativeBuildInputs = [ python3 git cmake ];
-    buildInputs = [ libffi zlib ncurses ];
+    buildInputs = [ libffi ncurses zlib ];
 
     strictDeps = true;
 
@@ -69,22 +77,30 @@ let
       "-DLLVM_MAIN_INCLUDE_DIR=${fixedLlvmDev}/include"
       "-DLLVM_TABLEGEN_EXE=${llvmPackages_9.llvm.out}/bin/llvm-tblgen"
       "-DLLVM_TOOLS_BINARY_DIR=${llvmPackages_9.llvm.out}/bin"
+      "-DLLVM_BUILD_TOOLS=Off"
       "-DLLVM_TOOL_CLING_BUILD=ON"
 
       "-DLLVM_TARGETS_TO_BUILD=host;NVPTX"
       "-DLLVM_ENABLE_RTTI=ON"
 
+      # Use LLVM's libc++ rather than GCC's libstdc++
+      "-DLLVM_ENABLE_LIBCXX=ON"
+      "-DLLVM_ENABLE_LIBCXXABI=ON"
+
       # Setting -DCLING_INCLUDE_TESTS=ON causes the cling/tools targets to be built;
       # see cling/tools/CMakeLists.txt
       "-DCLING_INCLUDE_TESTS=ON"
       "-DCLANG-TOOLS=OFF"
-      # "--trace-expand"
+    ] ++ lib.optionals debug [
+      "-DCMAKE_BUILD_TYPE=Debug"
     ];
 
-    postInstall = lib.optionalString (!stdenv.isDarwin) ''
+    postInstall = lib.optionalString (!clangStdenv.isDarwin) ''
       mkdir -p $out/share/Jupyter
       cp -r /build/clang/tools/cling/tools/Jupyter/kernel $out/share/Jupyter
     '';
+
+    dontStrip = debug;
 
     meta = with lib; {
       description = "The Interactive C++ Interpreter";
@@ -109,30 +125,28 @@ let
   flags = [
     "-nostdinc"
     "-nostdinc++"
-    "-isystem" "${lib.getDev stdenv.cc.libc}/include"
-    "-I" "${lib.getDev unwrapped}/include"
-    "-I" "${lib.getLib unwrapped}/lib/clang/9.0.1/include"
-  ];
 
-  # Autodetect the include paths for the compiler used to build Cling, in the same way Cling does at
-  # https://github.com/root-project/cling/blob/v0.7/lib/Interpreter/CIFactory.cpp#L107:L111
-  # Note: it would be nice to just put the compiler in Cling's PATH and let it do this by itself, but
-  # unfortunately passing -nostdinc/-nostdinc++ disables Cling's autodetection logic.
-  compilerIncludeFlags = runCommand "compiler-include-flags.txt" {} ''
-    export LC_ALL=C
-    ${stdenv.cc}/bin/c++ -xc++ -E -v /dev/null 2>&1 | sed -n -e '/^.include/,''${' -e '/^ \/.*++/p' -e '}' > tmp
-    sed -e 's/^/-isystem /' -i tmp
-    tr '\n' ' ' < tmp > $out
-  '';
+    "-isystem" "${lib.getLib unwrapped}/lib/clang/9.0.1/include"
+
+    # System C++
+    "-I" "${lib.getDev llvmPackages_9.libcxx}/include/c++/v1"
+    "-L" "${llvmPackages_9.libcxx}/lib"
+    "-l" "${llvmPackages_9.libcxx}/lib/libc++.so"
+
+    # System libc
+    "-isystem" "${lib.getDev llvmPackages_9.stdenv.cc.libc}/include"
+
+    # cling includes
+    "-isystem" "${lib.getDev unwrapped}/include"
+  ];
 
 in
 
-runCommand "cling-${unwrapped.version}" {
+runCommandNoCC "cling-${unwrapped.version}" {
   nativeBuildInputs = [ makeWrapper ];
-  inherit unwrapped flags compilerIncludeFlags;
+  inherit unwrapped flags;
   inherit (unwrapped) meta;
 } ''
   makeWrapper $unwrapped/bin/cling $out/bin/cling \
-    --add-flags "$(cat "$compilerIncludeFlags")" \
     --add-flags "$flags"
 ''
