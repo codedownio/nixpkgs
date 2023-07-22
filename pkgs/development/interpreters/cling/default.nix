@@ -1,5 +1,4 @@
 { lib
-, clangStdenv
 , cmake
 , fetchFromGitHub
 , fetchgit
@@ -15,6 +14,9 @@
 # fork of Clang 9 to build Cling against.
 , clangStdenv
 
+# *NOT* from LLVM 9!
+, clangStdenv
+
 , libffi
 , ncurses
 , zlib
@@ -23,6 +25,8 @@
 }:
 
 let
+  stdenv = clangStdenv;
+
   # The LLVM 9 headers have a couple bugs we need to patch
   fixedLlvmDev = runCommandNoCC "llvm-dev-${llvmPackages_9.llvm.version}" { buildInputs = [git]; } ''
     mkdir $out
@@ -32,7 +36,7 @@ let
     git apply ${./fix-llvm-include.patch}
   '';
 
-  unwrapped = clangStdenv.mkDerivation rec {
+  unwrapped = stdenv.mkDerivation rec {
     pname = "cling-unwrapped";
     version = "0.9";
 
@@ -95,7 +99,7 @@ let
       "-DCMAKE_BUILD_TYPE=Debug"
     ];
 
-    postInstall = lib.optionalString (!clangStdenv.isDarwin) ''
+    postInstall = lib.optionalString (!stdenv.isDarwin) ''
       mkdir -p $out/share/Jupyter
       cp -r /build/clang/tools/cling/tools/Jupyter/kernel $out/share/Jupyter
     '';
@@ -134,7 +138,7 @@ let
     "-l" "${llvmPackages_9.libcxx}/lib/libc++.so"
 
     # System libc
-    "-isystem" "${lib.getDev llvmPackages_9.stdenv.cc.libc}/include"
+    "-isystem" "${lib.getDev stdenv.cc.libc}/include"
 
     # cling includes
     "-isystem" "${lib.getDev unwrapped}/include"
