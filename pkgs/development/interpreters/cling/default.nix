@@ -1,5 +1,4 @@
 { lib
-, clangStdenv
 , cmake
 , fetchFromGitHub
 , fetchgit
@@ -9,12 +8,17 @@
 , python3
 , runCommand
 
+# *NOT* from LLVM 9!
+, clangStdenv
+
 , libffi
 , ncurses
 , zlib
 }:
 
 let
+  stdenv = clangStdenv;
+
   # The LLVM 9 headers have a couple bugs we need to patch
   fixedLlvmDev = runCommand "llvm-dev-${llvmPackages_9.llvm.version}" { buildInputs = [git]; } ''
     mkdir $out
@@ -24,7 +28,7 @@ let
     git apply ${./fix-llvm-include.patch}
   '';
 
-  unwrapped = clangStdenv.mkDerivation rec {
+  unwrapped = stdenv.mkDerivation rec {
     pname = "cling-unwrapped";
     version = "0.9";
 
@@ -75,6 +79,8 @@ let
       "-DLLVM_TARGETS_TO_BUILD=host;NVPTX"
       "-DLLVM_ENABLE_RTTI=ON"
 
+      "-DCMAKE_BUILD_TYPE=Debug"
+
       # Setting -DCLING_INCLUDE_TESTS=ON causes the cling/tools targets to be built;
       # see cling/tools/CMakeLists.txt
       "-DCLING_INCLUDE_TESTS=ON"
@@ -82,7 +88,9 @@ let
       # "--trace-expand"
     ];
 
-    postInstall = lib.optionalString (!clangStdenv.isDarwin) ''
+    dontStrip = true;
+
+    postInstall = lib.optionalString (!stdenv.isDarwin) ''
       mkdir -p $out/share/Jupyter
       cp -r /build/clang/tools/cling/tools/Jupyter/kernel $out/share/Jupyter
     '';
@@ -116,7 +124,7 @@ let
     # "-L" "${llvmPackages_9.libcxx}/lib"
 
     # System libc
-    "-isystem" "${lib.getDev clangStdenv.cc.libc}/include"
+    "-isystem" "${lib.getDev stdenv.cc.libc}/include"
 
     # cling includes
     "-I" "${lib.getDev unwrapped}/include"
@@ -129,7 +137,7 @@ let
   # unfortunately passing -nostdinc/-nostdinc++ disables Cling's autodetection logic.
   compilerIncludeFlags = runCommand "compiler-include-flags.txt" {} ''
     export LC_ALL=C
-    ${clangStdenv.cc}/bin/c++ -xc++ -E -v /dev/null 2>&1 | sed -n -e '/^.include/,''${' -e '/^ \/.*++/p' -e '}' > tmp
+    ${stdenv.cc}/bin/c++ -xc++ -E -v /dev/null 2>&1 | sed -n -e '/^.include/,''${' -e '/^ \/.*++/p' -e '}' > tmp
     sed -e 's/^/-isystem /' -i tmp
     tr '\n' ' ' < tmp > $out
   '';
