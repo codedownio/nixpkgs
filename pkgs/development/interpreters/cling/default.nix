@@ -6,9 +6,12 @@
 , llvmPackages_9
 , makeWrapper
 , python3
-, runCommand
+, runCommandNoCC
 
 # *NOT* from LLVM 9!
+# It would be cleanest to use LLVM 9's clang to build this, but it errors.
+# So we use a later version of Clang to compile, but we check out the Cling
+# fork of Clang 9 to build Cling against.
 , clangStdenv
 
 , libffi
@@ -20,7 +23,7 @@ let
   stdenv = clangStdenv;
 
   # The LLVM 9 headers have a couple bugs we need to patch
-  fixedLlvmDev = runCommand "llvm-dev-${llvmPackages_9.llvm.version}" { buildInputs = [git]; } ''
+  fixedLlvmDev = runCommandNoCC "llvm-dev-${llvmPackages_9.llvm.version}" { buildInputs = [git]; } ''
     mkdir $out
     cp -r ${llvmPackages_9.llvm.dev}/include $out
     cd $out
@@ -81,6 +84,10 @@ let
 
       "-DCMAKE_BUILD_TYPE=Debug"
 
+      # Use LLVM's libc++ rather than GCC's libstdc++
+      "-DLLVM_ENABLE_LIBCXX=ON"
+      "-DLLVM_ENABLE_LIBCXXABI=ON"
+
       # Setting -DCLING_INCLUDE_TESTS=ON causes the cling/tools targets to be built;
       # see cling/tools/CMakeLists.txt
       "-DCLING_INCLUDE_TESTS=ON"
@@ -119,37 +126,27 @@ let
     "-nostdinc"
     "-nostdinc++"
 
+    "-isystem" "${lib.getLib unwrapped}/lib/clang/9.0.1/include"
+
     # System C++
-    # "-I" "${lib.getDev llvmPackages_9.libcxx}/include/c++/v1"
-    # "-L" "${llvmPackages_9.libcxx}/lib"
+    "-I" "${lib.getDev llvmPackages_9.libcxx}/include/c++/v1"
+    "-L" "${llvmPackages_9.libcxx}/lib"
+    "-l" "${llvmPackages_9.libcxx}/lib/libc++.so"
 
     # System libc
-    "-isystem" "${lib.getDev stdenv.cc.libc}/include"
+    "-isystem" "${lib.getDev llvmPackages_9.stdenv.cc.libc}/include"
 
     # cling includes
-    "-I" "${lib.getDev unwrapped}/include"
-    "-I" "${lib.getLib unwrapped}/lib/clang/9.0.1/include"
+    "-isystem" "${lib.getDev unwrapped}/include"
   ];
-
-  # Autodetect the include paths for the compiler used to build Cling, in the same way Cling does at
-  # https://github.com/root-project/cling/blob/v0.7/lib/Interpreter/CIFactory.cpp#L107:L111
-  # Note: it would be nice to just put the compiler in Cling's PATH and let it do this by itself, but
-  # unfortunately passing -nostdinc/-nostdinc++ disables Cling's autodetection logic.
-  compilerIncludeFlags = runCommand "compiler-include-flags.txt" {} ''
-    export LC_ALL=C
-    ${stdenv.cc}/bin/c++ -xc++ -E -v /dev/null 2>&1 | sed -n -e '/^.include/,''${' -e '/^ \/.*++/p' -e '}' > tmp
-    sed -e 's/^/-isystem /' -i tmp
-    tr '\n' ' ' < tmp > $out
-  '';
 
 in
 
-runCommand "cling-${unwrapped.version}" {
+runCommandNoCC "cling-${unwrapped.version}" {
   nativeBuildInputs = [ makeWrapper ];
-  inherit unwrapped flags compilerIncludeFlags;
+  inherit unwrapped flags;
   inherit (unwrapped) meta;
 } ''
   makeWrapper $unwrapped/bin/cling $out/bin/cling \
-    --add-flags "$(cat "$compilerIncludeFlags")" \
     --add-flags "$flags"
 ''
