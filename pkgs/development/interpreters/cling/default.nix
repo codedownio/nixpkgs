@@ -14,9 +14,6 @@
 # fork of Clang 9 to build Cling against.
 , clangStdenv
 
-# *NOT* from LLVM 9!
-, clangStdenv
-
 , libffi
 , ncurses
 , zlib
