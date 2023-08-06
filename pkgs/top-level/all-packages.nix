@@ -9127,6 +9127,8 @@ with pkgs;
     packages = config.ihaskell.packages or (_: []);
   };
 
+  ihaskell-kernel = callPackage ../applications/editors/jupyter-kernels/ihaskell { };
+
   ijq = callPackage ../development/tools/ijq { };
 
   iruby = callPackage ../applications/editors/jupyter-kernels/iruby { };
