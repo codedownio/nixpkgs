@@ -17536,6 +17536,9 @@ with pkgs;
   cg3 = callPackage ../development/interpreters/cg3 { };
 
   cling = callPackage ../development/interpreters/cling { };
+  cling-gcc13 = callPackage ../development/interpreters/cling {
+    gcc-unwrapped = gcc13.cc;
+  };
 
   clips = callPackage ../development/interpreters/clips { };
 
