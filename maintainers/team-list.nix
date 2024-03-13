@@ -469,6 +469,18 @@ with lib.maintainers; {
     shortName = "Jitsi";
   };
 
+  julia = {
+    members = [
+      joshniemela
+      nickcao
+      raskin
+      thomasjm
+      wegank
+    ];
+    scope = "Maintain Julia and related packages.";
+    shortName = "Julia";
+  };
+
   jupyter = {
     members = [
       GaetanLepage
