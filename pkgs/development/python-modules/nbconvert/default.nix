@@ -47,7 +47,10 @@ buildPythonPackage rec {
 
   # Add $out/share/jupyter to the list of paths that are used to search for
   # various exporter templates
-  patches = [ ./templates.patch ];
+  patches = [
+    ./templates.patch
+    ./fix-asciidoc.patch
+  ];
 
   postPatch = ''
     substituteAllInPlace ./nbconvert/exporters/templateexporter.py
