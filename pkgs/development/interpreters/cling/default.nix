@@ -43,6 +43,8 @@ let
     sparseCheckout = ["clang"];
   };
 
+  llvm = llvmPackages_13.llvm.override { enableSharedLibraries = false; };
+
   unwrapped = stdenv.mkDerivation rec {
     pname = "cling-unwrapped";
     version = "1.0";
@@ -73,12 +75,12 @@ let
     strictDeps = true;
 
     cmakeFlags = [
-      "-DLLVM_BINARY_DIR=${llvmPackages_13.llvm.out}"
-      "-DLLVM_CONFIG=${llvmPackages_13.llvm.dev}/bin/llvm-config"
-      "-DLLVM_LIBRARY_DIR=${llvmPackages_13.llvm.lib}/lib"
-      "-DLLVM_MAIN_INCLUDE_DIR=${llvmPackages_13.llvm.dev}/include"
-      "-DLLVM_TABLEGEN_EXE=${llvmPackages_13.llvm.out}/bin/llvm-tblgen"
-      "-DLLVM_TOOLS_BINARY_DIR=${llvmPackages_13.llvm.out}/bin"
+      "-DLLVM_BINARY_DIR=${llvm.out}"
+      "-DLLVM_CONFIG=${llvm.dev}/bin/llvm-config"
+      "-DLLVM_LIBRARY_DIR=${llvm.lib}/lib"
+      "-DLLVM_MAIN_INCLUDE_DIR=${llvm.dev}/include"
+      "-DLLVM_TABLEGEN_EXE=${llvm.out}/bin/llvm-tblgen"
+      "-DLLVM_TOOLS_BINARY_DIR=${llvm.out}/bin"
       "-DLLVM_BUILD_TOOLS=Off"
       "-DLLVM_TOOL_CLING_BUILD=ON"
 
@@ -140,7 +142,7 @@ let
     "-nostdinc"
     "-nostdinc++"
 
-    "-resource-dir" "${llvmPackages_13.llvm.lib}/lib"
+    "-resource-dir" "${llvm.lib}/lib"
 
     "-isystem" "${lib.getLib unwrapped}/lib/clang/${llvmPackages_13.clang.version}/include"
   ]

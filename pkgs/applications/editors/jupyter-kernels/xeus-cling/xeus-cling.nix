@@ -36,6 +36,8 @@ let
     };
   });
 
+  llvm = llvmPackages_13.llvm;
+
 in
 
 clangStdenv.mkDerivation rec {
@@ -60,7 +62,7 @@ clangStdenv.mkDerivation rec {
     cling.unwrapped
     cppzmq
     libuuid
-    llvmPackages_13.llvm
+    llvm
     ncurses
     openssl
     pugixml
@@ -73,6 +75,7 @@ clangStdenv.mkDerivation rec {
 
   cmakeFlags = lib.optionals debug [
     "-DCMAKE_BUILD_TYPE=Debug"
+    "-DCMAKE_VERBOSE_MAKEFILE=ON"
   ];
 
   postPatch = ''
