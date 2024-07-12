@@ -87,6 +87,16 @@ clangStdenv.mkDerivation rec {
       --replace "code.str()" "code.str().str()"
   '';
 
+  checkPhase = ''
+    runHook preCheck
+
+    # Smoke test: check that xcpp can run at all. This can help catch LLVM linking problems like
+    # https://github.com/NixOS/nixpkgs/issues/306782
+    $out/bin/xcpp --version
+
+    runHook postCheck
+  '';
+
   dontStrip = debug;
 
   meta = {
