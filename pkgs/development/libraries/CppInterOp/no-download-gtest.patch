@@ -1,0 +1,17 @@
+diff --git a/unittests/CMakeLists.txt b/unittests/CMakeLists.txt
+index 6fe08a0..3bc8e1a 100644
+--- a/unittests/CMakeLists.txt
++++ b/unittests/CMakeLists.txt
+@@ -3,9 +3,9 @@ set(CTEST_BUILD_NAME
+ enable_testing()
+ 
+ # LLVM builds (not installed llvm) provides gtest.
+-if (NOT TARGET gtest)
+-  include(GoogleTest)
+-endif()
++# if (NOT TARGET gtest)
++#   include(GoogleTest)
++# endif()
+ 
+ set(gtest_libs gtest gtest_main)
+ # Clang prior than clang13 (I think) merges both gmock into gtest.

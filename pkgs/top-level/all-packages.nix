@@ -20137,6 +20137,8 @@ with pkgs;
 
   cog = callPackage ../development/web/cog { };
 
+  CppInterOp = callPackage ../development/libraries/CppInterOp {  };
+
   inherit (cosmopolitan) cosmocc;
 
   python-cosmopolitan = callPackage ../development/interpreters/python-cosmopolitan { };
