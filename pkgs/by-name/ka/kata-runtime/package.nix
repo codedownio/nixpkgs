@@ -8,8 +8,11 @@
 , go
 , qemu_kvm
 , makeWrapper
+, pkgsStatic
 , virtiofsd
 , yq-go
+
+, static ? true
 }:
 
 let
@@ -30,7 +33,7 @@ let
 
 in
 
-buildGoModule rec {
+buildGoModule (rec {
   pname = "kata-runtime";
   inherit version;
 
@@ -92,4 +95,16 @@ buildGoModule rec {
     maintainers = with lib.maintainers; [ thomasjm ];
     platforms = lib.platforms.unix;
   };
-}
+} // lib.optionalAttrs static {
+  # CGO_ENABLED = 0;
+
+  CGO_ENABLED = 1;
+  ldflags = [
+    "-linkmode external"
+    "-extldflags -static"
+  ];
+
+  preBuild = ''
+    export CC=${pkgsStatic.stdenv.cc}/bin/${pkgsStatic.stdenv.cc.targetPrefix}cc
+  '';
+})
