@@ -1,6 +1,6 @@
-{ lib, stdenv, fetchFromGitHub, rustPlatform, pkg-config, dtc, openssl }:
+{ lib, stdenv, fetchFromGitHub, rustPlatform, pkg-config, dtc, pkgsCross, pkgsStatic }:
 
-rustPlatform.buildRustPackage rec {
+pkgsStatic.rustPlatform.buildRustPackage rec {
   pname = "cloud-hypervisor";
   version = "40.0";
 
@@ -25,9 +25,9 @@ rustPlatform.buildRustPackage rec {
 
   separateDebugInfo = true;
 
-  nativeBuildInputs = [ pkg-config ];
+  nativeBuildInputs = [ pkgsCross.musl64.pkg-config ];
   buildInputs = lib.optional stdenv.isAarch64 dtc;
-  checkInputs = [ openssl ];
+  checkInputs = [ pkgsCross.musl64.openssl ];
 
   OPENSSL_NO_VENDOR = true;
 
@@ -37,6 +37,8 @@ rustPlatform.buildRustPackage rec {
     "--exclude" "net_util" # /dev/net/tun
     "--exclude" "vmm"      # /dev/kvm
   ];
+
+  target = "x86_64-unknown-linux-musl";
 
   meta = with lib; {
     homepage = "https://github.com/cloud-hypervisor/cloud-hypervisor";
