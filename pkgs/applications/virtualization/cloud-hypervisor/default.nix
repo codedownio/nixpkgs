@@ -1,6 +1,21 @@
-{ lib, stdenv, fetchFromGitHub, rustPlatform, pkg-config, dtc, pkgsCross, pkgsStatic }:
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  pkg-config,
+  dtc,
+  pkgs,
+  pkgsStatic,
+  static ? true
+}:
 
-pkgsStatic.rustPlatform.buildRustPackage rec {
+let
+  pkgsToUse = if static then pkgsStatic else pkgs;
+  inherit (pkgsToUse) rustPlatform openssl;
+
+in
+
+rustPlatform.buildRustPackage rec {
   pname = "cloud-hypervisor";
   version = "40.0";
 
@@ -25,17 +40,20 @@ pkgsStatic.rustPlatform.buildRustPackage rec {
 
   separateDebugInfo = true;
 
-  nativeBuildInputs = [ pkgsCross.musl64.pkg-config ];
+  nativeBuildInputs = [ pkg-config ];
   buildInputs = lib.optional stdenv.isAarch64 dtc;
-  checkInputs = [ pkgsCross.musl64.openssl ];
+  checkInputs = [ pkgsStatic.openssl ];
 
   OPENSSL_NO_VENDOR = true;
 
   cargoTestFlags = [
     "--workspace"
-    "--bins" "--lib" # Integration tests require root.
-    "--exclude" "net_util" # /dev/net/tun
-    "--exclude" "vmm"      # /dev/kvm
+    "--bins"
+    "--lib" # Integration tests require root.
+    "--exclude"
+    "net_util" # /dev/net/tun
+    "--exclude"
+    "vmm" # /dev/kvm
   ];
 
   target = "x86_64-unknown-linux-musl";
@@ -44,9 +62,18 @@ pkgsStatic.rustPlatform.buildRustPackage rec {
     homepage = "https://github.com/cloud-hypervisor/cloud-hypervisor";
     description = "Open source Virtual Machine Monitor (VMM) that runs on top of KVM";
     changelog = "https://github.com/cloud-hypervisor/cloud-hypervisor/releases/tag/v${version}";
-    license = with licenses; [ asl20 bsd3 ];
+    license = with licenses; [
+      asl20
+      bsd3
+    ];
     mainProgram = "cloud-hypervisor";
-    maintainers = with maintainers; [ offline qyliss ];
-    platforms = [ "aarch64-linux" "x86_64-linux" ];
+    maintainers = with maintainers; [
+      offline
+      qyliss
+    ];
+    platforms = [
+      "aarch64-linux"
+      "x86_64-linux"
+    ];
   };
 }
