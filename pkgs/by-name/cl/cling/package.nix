@@ -5,13 +5,13 @@
   git,
   lib,
   libffi,
-  llvmPackages_13,
+  llvmPackages_18,
   makeWrapper,
   ncurses,
   python3,
   zlib,
 
-  # *NOT* from LLVM 13!
+  # *NOT* from LLVM 18!
   # The compiler used to compile Cling may affect the runtime include and lib
   # directories it expects to be run with. Cling builds against (a fork of) Clang,
   # so we prefer to use Clang as the compiler as well for consistency.
@@ -38,32 +38,36 @@ let
   clangSrc = fetchFromGitHub {
     owner = "root-project";
     repo = "llvm-project";
-    # cling-llvm13 branch
-    rev = "3610201fbe0352a63efb5cb45f4ea4987702c735";
-    sha256 = "sha256-Cb7BvV7yobG+mkaYe7zD2KcnPvm8/vmVATNWssklXyk=";
+    # cling-llvm18 branch
+    rev = "156e947058a46ecc1785f98aa9abb8cbfaa45aa7";
+    sha256 = "sha256-sk/KJn0KiQ7Jz1VXdcO3Omu2eJMcpmfnxyVwD4vI0Dk=";
     sparseCheckout = [ "clang" ];
   };
 
-  llvm = llvmPackages_13.llvm.override { enableSharedLibraries = false; };
+  llvm = llvmPackages_18.llvm.override { enableSharedLibraries = false; };
 
   unwrapped = stdenv.mkDerivation rec {
     pname = "cling-unwrapped";
-    version = "1.0";
+    version = "1.2";
 
-    src = "${clangSrc}/clang";
+    src = "${clangSrc}";
 
     clingSrc = fetchFromGitHub {
       owner = "root-project";
       repo = "cling";
       rev = "v${version}";
-      sha256 = "sha256-Ye8EINzt+dyNvUIRydACXzb/xEPLm0YSkz08Xxw3xp4=";
+      sha256 = "sha256-ay9FXANJmB/+AdnCR4WOKHuPm6P88wLqoOgiKJwJ8JM=";
     };
 
     prePatch = ''
-      echo "add_llvm_external_project(cling)" >> tools/CMakeLists.txt
+      echo "add_llvm_external_project(cling)" >> clang/tools/CMakeLists.txt
 
-      cp -r $clingSrc tools/cling
-      chmod -R a+w tools/cling
+      cp -r $clingSrc clang/tools/cling
+      chmod -R a+w clang/tools/cling
+    '';
+
+    preConfigure = ''
+      cd clang
     '';
 
     patches = [
@@ -83,7 +87,10 @@ let
 
     strictDeps = true;
 
+    # LLVM_DIR="${llvm.dev}/lib/cmake/llvm";
+
     cmakeFlags = [
+      "-DLLVM_DIR=${llvm.dev}/lib/cmake/llvm"
       "-DLLVM_BINARY_DIR=${llvm.out}"
       "-DLLVM_CONFIG=${llvm.dev}/bin/llvm-config"
       "-DLLVM_LIBRARY_DIR=${llvm.lib}/lib"
@@ -92,6 +99,7 @@ let
       "-DLLVM_TOOLS_BINARY_DIR=${llvm.out}/bin"
       "-DLLVM_BUILD_TOOLS=Off"
       "-DLLVM_TOOL_CLING_BUILD=ON"
+      "-DLLVM_INCLUDE_TESTS=OFF"
 
       "-DLLVM_TARGETS_TO_BUILD=host;NVPTX"
       "-DLLVM_ENABLE_RTTI=ON"
@@ -150,15 +158,15 @@ let
     "${llvm.lib}/lib"
 
     "-isystem"
-    "${lib.getLib unwrapped}/lib/clang/${llvmPackages_13.clang.version}/include"
+    "${lib.getLib unwrapped}/lib/clang/${llvmPackages_18.clang.version}/include"
   ]
   ++ lib.optionals useLLVMLibcxx [
     "-I"
-    "${lib.getDev llvmPackages_13.libcxx}/include/c++/v1"
+    "${lib.getDev llvmPackages_18.libcxx}/include/c++/v1"
     "-L"
-    "${llvmPackages_13.libcxx}/lib"
+    "${llvmPackages_18.libcxx}/lib"
     "-l"
-    "${llvmPackages_13.libcxx}/lib/libc++${stdenv.hostPlatform.extensions.sharedLibrary}"
+    "${llvmPackages_18.libcxx}/lib/libc++${stdenv.hostPlatform.extensions.sharedLibrary}"
   ]
   ++ lib.optionals (!useLLVMLibcxx) [
     "-I"
