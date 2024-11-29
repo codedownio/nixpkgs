@@ -28,6 +28,10 @@
 , makeWrapperArgs ? ""
 , packageOverrides ? {}
 , makeTransitiveDependenciesImportable ? false # Used to support symbol indexing
+
+# If precompilation is present, we want to set a specific CPU target, in case this package
+# ends up being stored in a Nix cache.
+, juliaCpuTarget ? (if precompile then "haswell" else null)
 }:
 
 packageNames:
@@ -45,18 +49,21 @@ let
 
   # Start by wrapping Julia so it has access to Python and any other extra libs.
   # Also, prevent various packages (CondaPkg.jl, PythonCall.jl) from trying to do network calls.
-  juliaWrapped = runCommand "julia-${julia.version}-wrapped" { nativeBuildInputs = [makeWrapper]; inherit makeWrapperArgs; } ''
-    mkdir -p $out/bin
-    makeWrapper ${julia}/bin/julia $out/bin/julia \
-      --suffix LD_LIBRARY_PATH : "${lib.makeLibraryPath extraLibs}" \
-      --set FONTCONFIG_FILE ${fontconfig.out}/etc/fonts/fonts.conf \
-      --set PYTHONHOME "${pythonToUse}" \
-      --prefix PYTHONPATH : "${pythonToUse}/${pythonToUse.sitePackages}" \
-      --set PYTHON ${pythonToUse}/bin/python $makeWrapperArgs \
-      --set JULIA_CONDAPKG_OFFLINE yes \
-      --set JULIA_CONDAPKG_BACKEND Null \
-      --set JULIA_PYTHONCALL_EXE "@PyCall"
-  '';
+  juliaWrapped = let
+    cpuTargetFlag = lib.optionalString (juliaCpuTarget != null) "--set JULIA_CPU_TARGET ${juliaCpuTarget}";
+  in
+    runCommand "julia-${julia.version}-wrapped" { nativeBuildInputs = [makeWrapper]; inherit makeWrapperArgs; } ''
+      mkdir -p $out/bin
+      makeWrapper ${julia}/bin/julia $out/bin/julia ${cpuTargetFlag} \
+        --suffix LD_LIBRARY_PATH : "${lib.makeLibraryPath extraLibs}" \
+        --set FONTCONFIG_FILE ${fontconfig.out}/etc/fonts/fonts.conf \
+        --set PYTHONHOME "${pythonToUse}" \
+        --prefix PYTHONPATH : "${pythonToUse}/${pythonToUse.sitePackages}" \
+        --set PYTHON ${pythonToUse}/bin/python $makeWrapperArgs \
+        --set JULIA_CONDAPKG_OFFLINE yes \
+        --set JULIA_CONDAPKG_BACKEND Null \
+        --set JULIA_PYTHONCALL_EXE "@PyCall"
+      '';
 
   # If our closure ends up with certain packages, add others.
   packageImplications = {
@@ -157,7 +164,7 @@ let
   # Build a Julia project and depot. The project contains Project.toml/Manifest.toml, while the
   # depot contains package build products (including the precompiled libraries, if precompile=true)
   projectAndDepot = callPackage ./depot.nix {
-    inherit closureYaml extraLibs overridesToml packageImplications precompile;
+    inherit closureYaml extraLibs juliaCpuTarget overridesToml packageImplications precompile;
     julia = juliaWrapped;
     registry = minimalRegistry;
     packageNames = if makeTransitiveDependenciesImportable
