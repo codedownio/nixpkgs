@@ -127,6 +127,7 @@ let
 
   # Next, deal with artifacts. Scan each artifacts file individually and generate a Nix file that
   # produces the desired Overrides.toml.
+  fixupArtifactsAgainstGlibc = stdenv.hostPlatform.libc == "glibc";
   artifactsNix = runCommand "julia-artifacts.nix" { buildInputs = [(python3.withPackages (ps: with ps; [toml pyyaml]))]; } ''
     python ${./python}/extract_artifacts.py \
       "${dependencyUuidToRepoYaml}" \
@@ -134,14 +135,14 @@ let
       "${juliaWrapped}/bin/julia" \
       "${if lib.versionAtLeast julia.version "1.7" then ./extract_artifacts.jl else ./extract_artifacts_16.jl}" \
       '${lib.generators.toJSON {} (import ./extra-libs.nix)}' \
-      '${lib.generators.toJSON {} (stdenv.hostPlatform.isDarwin)}' \
+      '${lib.generators.toJSON {} fixupArtifactsAgainstGlibc}' \
       "$out"
   '';
 
   # Import the artifacts Nix to build Overrides.toml (IFD)
   artifacts = import artifactsNix ({
     inherit lib fetchurl pkgs stdenv;
-  } // lib.optionalAttrs (!stdenv.targetPlatform.isDarwin) {
+  } // lib.optionalAttrs fixupArtifactsAgainstGlibc {
     inherit glibc;
   });
   overridesJson = writeTextFile {
