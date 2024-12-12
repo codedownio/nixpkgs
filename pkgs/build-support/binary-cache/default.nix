@@ -7,6 +7,7 @@
 # nix-build -E 'with import ./. {}; mkBinaryCache { rootPaths = [hello]; }'
 
 { name ? "binary-cache"
+, disableCompression ? false
 , rootPaths
 }:
 
@@ -24,7 +25,8 @@ stdenv.mkDerivation {
   buildCommand = ''
     mkdir -p $out/nar
 
-    python ${./make-binary-cache.py}
+    python ${./make-binary-cache.py} \
+      ${lib.generators.toJSON {} disableCompression}
 
     # These directories must exist, or Nix might try to create them in LocalBinaryCacheStore::init(),
     # which fails if mounted read-only

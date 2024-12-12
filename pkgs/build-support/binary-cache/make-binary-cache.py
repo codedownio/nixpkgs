@@ -2,6 +2,10 @@
 import json
 import os
 import subprocess
+import sys
+
+disableCompression = json.loads(sys.argv[1])
+narSuffix = ".nar" if disableCompression else ".nar.xz"
 
 with open(os.environ["NIX_ATTRS_JSON_FILE"], "r") as f:
   closures = json.load(f)["closure"]
@@ -19,21 +23,24 @@ def dropPrefix(path):
 for item in closures:
   narInfoHash = dropPrefix(item["path"]).split("-")[0]
 
-  xzFile = "nar/" + narInfoHash + ".nar.xz"
-  with open(xzFile, "w") as f:
-    subprocess.run("nix-store --dump %s | xz -c" % item["path"], stdout=f, shell=True)
+  narFile = "nar/" + narInfoHash + narSuffix
+  with open(narFile, "w") as f:
+    command = "nix-store --dump %s" % item["path"]
+    if not disableCompression:
+      command += " | xz -c"
+    subprocess.run(command, stdout=f, shell=True)
 
   fileHash = subprocess.run(["nix-hash", "--base32", "--type", "sha256", item["path"]], capture_output=True).stdout.decode().strip()
-  fileSize = os.path.getsize(xzFile)
+  fileSize = os.path.getsize(narFile)
 
   # Rename the .nar.xz file to its own hash to match "nix copy" behavior
-  finalXzFile = "nar/" + fileHash + ".nar.xz"
-  os.rename(xzFile, finalXzFile)
+  finalNarFile = "nar/" + fileHash + narSuffix
+  os.rename(narFile, finalNarFile)
 
   with open(narInfoHash + ".narinfo", "w") as f:
     f.writelines((x + "\n" for x in [
       "StorePath: " + item["path"],
-      "URL: " + finalXzFile,
+      "URL: " + finalNarFile,
       "Compression: xz",
       "FileHash: sha256:" + fileHash,
       "FileSize: " + str(fileSize),
