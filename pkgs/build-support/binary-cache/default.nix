@@ -6,6 +6,7 @@
   python3,
   nix,
   xz,
+  zstd,
 }:
 
 # This function is for creating a flat-file binary cache, i.e. the kind created by
@@ -16,8 +17,30 @@
 
 {
   name ? "binary-cache",
+  compression ? "zstd", # one of ["zstd" "xz" "none"]
   rootPaths,
 }:
+
+assert lib.elem compression [
+  "none"
+  "xz"
+  "zstd"
+];
+
+let
+  compressionCommand = {
+    "none" = "";
+    "xz" = "| xz -c";
+    "zstd" = "| zstd";
+  }.${compression};
+
+  compressionExtension = {
+    "none" = "";
+    "xz" = ".xz";
+    "zstd" = ".zst";
+  }.${compression};
+
+in
 
 stdenv.mkDerivation {
   inherit name;
@@ -34,6 +57,7 @@ stdenv.mkDerivation {
     python3
     nix
     xz
+    zstd
   ];
 
   buildCommand = ''
@@ -42,7 +66,10 @@ stdenv.mkDerivation {
     NUM_WORKERS="''${NIX_BUILD_CORES:-4}"
 
     python ${./make-binary-cache.py} \
-      --num-workers "$NUM_WORKERS"
+      --num-workers "$NUM_WORKERS" \
+      --compression "${compression}" \
+      --compression-command "${compressionCommand}" \
+      --compression-extension "${compressionExtension}"
 
     # These directories must exist, or Nix might try to create them in LocalBinaryCacheStore::init(),
     # which fails if mounted read-only
