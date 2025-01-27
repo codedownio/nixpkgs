@@ -93,6 +93,7 @@
   libpulseaudio ? null,
   ungoogled ? false,
   ungoogled-chromium,
+  useSystemLibffi ? true,
   # Optional dependencies:
   libgcrypt ? null, # cupsSupport
   systemdSupport ? lib.meta.availableOn stdenv.hostPlatform systemd,
@@ -735,10 +736,12 @@ let
             use_qt = false;
           }
       )
-      // {
+      // lib.optionalAttrs useSystemLibffi {
         # To fix the build as we don't provide libffi_pic.a
         # (ld.lld: error: unable to find library -l:libffi_pic.a):
         use_system_libffi = true;
+      }
+      // {
         # Use nixpkgs Rust compiler instead of the one shipped by Chromium.
         rust_sysroot_absolute = "${buildPackages.rustc}";
         rust_bindgen_root = "${buildPackages.rust-bindgen}";

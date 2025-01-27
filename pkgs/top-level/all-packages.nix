@@ -15085,6 +15085,8 @@ with pkgs;
 
   chromium = callPackage ../applications/networking/browsers/chromium (config.chromium or { });
 
+  chromiumHeadlessShell = callPackage ../applications/networking/browsers/chromium/headless-shell.nix {};
+
   chuck = callPackage ../applications/audio/chuck {
     inherit (darwin) DarwinTools;
     inherit (darwin.apple_sdk.frameworks)
