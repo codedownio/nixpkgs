@@ -16,17 +16,19 @@
   ffmpeg,
   python3,
   testers,
+
+  windows,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "zeromq";
-  version = "4.3.5";
+  version = "4.3.6-prerelease";
 
   src = fetchFromGitHub {
     owner = "zeromq";
     repo = "libzmq";
-    rev = "v${finalAttrs.version}";
-    hash = "sha256-q2h5y0Asad+fGB9haO4Vg7a1ffO2JSb7czzlhmT3VmI=";
+    rev = "34f7fa22022bed9e0e390ed3580a1c83ac4a2834";
+    hash = "sha256-20f17Zs4tKegzNcQu0oOAZyKg1Wz3mvhmHiSg8wT9eY=";
   };
 
   strictDeps = true;
@@ -38,13 +40,20 @@ stdenv.mkDerivation (finalAttrs: {
     xmlto
   ];
 
-  buildInputs = [ libsodium ];
+  buildInputs = [
+    libsodium
+  ] ++ lib.optionals stdenv.hostPlatform.isMinGW [
+    windows.mingw_w64_pthreads
+  ];
 
   cmakeFlags = [
     (lib.cmakeBool "BUILD_SHARED" (!stdenv.hostPlatform.isStatic))
     (lib.cmakeBool "ENABLE_CURVE" true)
     (lib.cmakeBool "ENABLE_DRAFTS" enableDrafts)
     (lib.cmakeBool "WITH_LIBSODIUM" true)
+  ] ++ lib.optionals stdenv.hostPlatform.isMinGW [
+    "-DCMAKE_SYSTEM_VERSION=10.0"
+    "-DPOLLER=epoll"
   ];
 
   postPatch = ''
@@ -70,7 +79,7 @@ stdenv.mkDerivation (finalAttrs: {
     popd
   '';
 
-  postInstall = ''
+  postInstall = lib.optionalString (!stdenv.hostPlatform.isMinGW) ''
     # Install manually created man pages
     install -vDm644 -t "$out/share/man/man3" ../doc/*.3
     install -vDm644 -t "$out/share/man/man7" ../doc/*.7
