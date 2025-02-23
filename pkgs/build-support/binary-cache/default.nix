@@ -23,8 +23,8 @@
   # If provided, sign the store paths in the cache with the given private key.
   # Should be given in the Nix key format, i.e.
   # some-cache-name:<base64-encoded key>
-  signaturePrivateKey ? null,
-  # signaturePrivateKey ? "test-cache-key:3k9pv6V9VVI8iMNuzeany39kKiNLDliwGCqElr0pYDRlMHad7oHXXMHnL4CaJYAjwGTPxH/RQpMyHYegrozliQ==",
+  # signaturePrivateKey ? null,
+  signaturePrivateKey ? "test-cache-key:3k9pv6V9VVI8iMNuzeany39kKiNLDliwGCqElr0pYDRlMHad7oHXXMHnL4CaJYAjwGTPxH/RQpMyHYegrozliQ==",
 }:
 
 assert lib.elem compression [

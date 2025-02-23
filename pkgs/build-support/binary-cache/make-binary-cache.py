@@ -61,15 +61,16 @@ def processItem(
             pubKey = keyBytes[32:]
 
             signingKey = SigningKey(keySeed, encoder=RawEncoder)
-            contentToSign = "".join([
-                f"StorePath: {item['path']}\n",
-                f"NarHash: {item['narHash']}\n",
-                f"NarSize: {item['narSize']}\n",
-                f"References: {' '.join(dropPrefix(ref, nixPrefix) for ref in item['references'])}\n",
+            # See https://github.com/NixOS/nix/blob/d904921eecbc17662fef67e8162bd3c7d1a54ce0/src/perl/lib/Nix/Manifest.pm#L231-L246
+            contentToSign = "1;" + ";".join([
+                item['path'],
+                item['narHash'],
+                str(item['narSize']),
+                ','.join(dropPrefix(ref, nixPrefix) for ref in item['references']),
             ])
             print("contentToSign", contentToSign)
             signature = signingKey.sign(contentToSign.encode("utf-8")).signature
-            print("Got signature", signature.hex())
+            print("Got signature", base64.b64encode(signature).decode('utf-8'))
             f.write(f"Sig: {keyName}:{base64.b64encode(signature).decode('utf-8')}\n")
 
 def main():

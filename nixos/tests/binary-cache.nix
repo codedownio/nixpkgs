@@ -72,7 +72,7 @@ import ./make-test-python.nix (
       machine.succeed("[ ! -d %s ] || exit 1" % storePath)
 
       # Should be able to build hello using the cache
-      logs = machine.succeed("nix-build -A hello '<nixpkgs>' --option trusted-substituters file:///tmp/cache --option substituters file:///tmp/cache --option trusted-public-keys 'test-cache-key:ZTB2ne6B11zB5y+AmiWAI8Bkz8R/0UKTMh2HoK6M5Yk=' 2>&1")
+      logs = machine.succeed("nix-build -vv -A hello '<nixpkgs>' --option trusted-substituters file:///tmp/cache --option substituters file:///tmp/cache --option trusted-public-keys 'test-cache-key:ZTB2ne6B11zB5y+AmiWAI8Bkz8R/0UKTMh2HoK6M5Yk=' 2>&1")
       logLines = logs.split("\n")
       if not "this path will be fetched" in logLines[0]: raise Exception("Unexpected first log line")
       def shouldBe(got, desired):
