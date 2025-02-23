@@ -1,7 +1,10 @@
 import argparse
+import base64
 from functools import partial
 import json
 from multiprocessing import Pool
+from nacl.signing import SigningKey
+from nacl.encoding import RawEncoder
 import os
 from pathlib import Path
 import subprocess
@@ -12,7 +15,7 @@ def dropPrefix(path, nixPrefix):
 
 
 def processItem(
-    item, nixPrefix, outDir, compression, compressionCommand, compressionExtension
+    item, nixPrefix, outDir, compression, compressionCommand, compressionExtension, signaturePrivateKey
 ):
     narInfoHash = dropPrefix(item["path"], nixPrefix).split("-")[0]
 
@@ -51,10 +54,28 @@ def processItem(
             f"References: {' '.join(dropPrefix(ref, nixPrefix) for ref in item['references'])}\n"
         )
 
+        if signaturePrivateKey:
+            keyName, keyBase64 = signaturePrivateKey.split(':', 1)
+            keyBytes = base64.b64decode(keyBase64)
+            keySeed = keyBytes[:32]
+            pubKey = keyBytes[32:]
+
+            signingKey = SigningKey(keySeed, encoder=RawEncoder)
+            contentToSign = "".join([
+                f"StorePath: {item['path']}\n",
+                f"NarHash: {item['narHash']}\n",
+                f"NarSize: {item['narSize']}\n",
+                f"References: {' '.join(dropPrefix(ref, nixPrefix) for ref in item['references'])}\n",
+            ])
+            print("contentToSign", contentToSign)
+            signature = signingKey.sign(contentToSign.encode("utf-8")).signature
+            print("Got signature", signature.hex())
+            f.write(f"Sig: {keyName}:{base64.b64encode(signature).decode('utf-8')}\n")
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--compression", choices=["none", "xz", "zstd"])
+    parser.add_argument("--signature-private-key")
     args = parser.parse_args()
 
     compressionCommand = {
@@ -89,6 +110,7 @@ def main():
             compression=args.compression,
             compressionCommand=compressionCommand,
             compressionExtension=compressionExtension,
+            signaturePrivateKey=json.loads(args.signature_private_key),
         )
         pool.map(worker, closures)
 

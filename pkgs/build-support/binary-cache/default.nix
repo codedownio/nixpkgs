@@ -19,6 +19,12 @@
   name ? "binary-cache",
   compression ? "zstd", # one of ["none" "xz" "zstd"]
   rootPaths,
+
+  # If provided, sign the store paths in the cache with the given private key.
+  # Should be given in the Nix key format, i.e.
+  # some-cache-name:<base64-encoded key>
+  signaturePrivateKey ? null,
+  # signaturePrivateKey ? "test-cache-key:3k9pv6V9VVI8iMNuzeany39kKiNLDliwGCqElr0pYDRlMHad7oHXXMHnL4CaJYAjwGTPxH/RQpMyHYegrozliQ==",
 }:
 
 assert lib.elem compression [
@@ -40,7 +46,7 @@ stdenv.mkDerivation {
     [
       coreutils
       jq
-      python3
+      (python3.withPackages (ps: [ps.pynacl]))
       nix
     ]
     ++ lib.optional (compression == "xz") xz
@@ -49,7 +55,9 @@ stdenv.mkDerivation {
   buildCommand = ''
     mkdir -p $out/nar
 
-    python ${./make-binary-cache.py} --compression "${compression}"
+    python ${./make-binary-cache.py} \
+      --compression "${compression}" \
+      --signature-private-key '${lib.generators.toJSON {} signaturePrivateKey}'
 
     # These directories must exist, or Nix might try to create them in LocalBinaryCacheStore::init(),
     # which fails if mounted read-only
