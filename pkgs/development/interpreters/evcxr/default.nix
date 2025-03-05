@@ -15,17 +15,17 @@
 
 rustPlatform.buildRustPackage rec {
   pname = "evcxr";
-  version = "0.17.0";
+  version = "0.19.0";
 
   src = fetchFromGitHub {
-    owner = "google";
+    owner = "evcxr";
     repo = "evcxr";
     rev = "v${version}";
-    sha256 = "sha256-6gSJJ3ptqpYydjg+xf5Pz3iTk0D+bkC6N79OeiKxPHY=";
+    sha256 = "sha256-8PjZFWUH76QrA8EI9Cx0sBCzocvSmnp84VD7Nv9QMc8=";
   };
 
   useFetchCargoVendor = true;
-  cargoHash = "sha256-U2LBesQNOa/E/NkVeLulb8JUtGsHgMne0MgY0RT9lqI=";
+  cargoHash = "sha256-hE/O6lHC0o+nrN4vaQ155Nn2gZscpfsZ6o7IDi/IEjI=";
 
   RUST_SRC_PATH = "${rustPlatform.rustLibSrc}";
 
@@ -38,6 +38,37 @@ rustPlatform.buildRustPackage rec {
     libiconv
     CoreServices
     Security
+  ];
+
+  # postPatch = ''
+  #   substituteInPlace evcxr_jupyter/Cargo.toml \
+  #     --replace-fail "[package]" ''$'cargo-features = ["edition2024"]\n[package]'
+
+  #   substituteInPlace evcxr_runtime/Cargo.toml \
+  #     --replace-fail "[package]" ''$'cargo-features = ["edition2024"]\n[package]'
+
+  #   substituteInPlace evcxr_repl/Cargo.toml \
+  #     --replace-fail "[package]" ''$'cargo-features = ["edition2024"]\n[package]'
+
+  #   substituteInPlace evcxr/Cargo.toml \
+  #     --replace-fail "[package]" ''$'cargo-features = ["edition2024"]\n[package]'
+
+  #   substituteInPlace runtimes/evcxr_image/Cargo.toml \
+  #     --replace-fail "[package]" ''$'cargo-features = ["edition2024"]\n[package]'
+
+  #   substituteInPlace print_performance_info/Cargo.toml \
+  #     --replace-fail "[package]" ''$'cargo-features = ["edition2024"]\n[package]'
+  # '';
+
+  # buildFeatures = ["edition2024"];
+
+  cargoFlags = [
+    "-Z" "unstable-options"
+    "-Z" "allow-features=edition2024"
+  ];
+
+  cargoBuildFlags = [
+    "-Z" "allow-features=edition2024"
   ];
 
   checkFlags = [
