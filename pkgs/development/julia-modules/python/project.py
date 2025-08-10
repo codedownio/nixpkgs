@@ -27,8 +27,7 @@ for pkg in desired_packages:
   path = uuid_to_store_path.get(pkg["uuid"], None)
 
   if pkg["uuid"] in package_overrides:
-    info = package_overrides[uuid]
-    path = Path(info["name"][0].upper()) / Path(info["name"])
+    info = package_overrides[pkg["uuid"]]
     result["deps"][info["name"]].append({
       "uuid": pkg["uuid"],
       # "deps": pkg["deps"],
