@@ -79,7 +79,9 @@ let
     PythonCall = [ "PyCall" ];
   };
 
-  # Invoke Julia resolution logic to determine the full dependency closure
+  # Invoke Julia resolution logic to determine the full dependency closure. Also
+  # gather information on the Julia standard libraries, which we'll need to
+  # generate a Manifest.toml.
   packageOverridesRepoified = lib.mapAttrs util.repoifySimple packageOverrides;
   closureYaml = callPackage ./package-closure.nix {
     inherit
@@ -89,6 +91,9 @@ let
       packageImplications
       ;
     packageOverrides = packageOverridesRepoified;
+  };
+  stdlibInfos = callPackage ./stdlib-infos.nix {
+    inherit julia;
   };
 
   # Generate a Nix file consisting of a map from dependency UUID --> package info with fetchgit call:
@@ -197,6 +202,7 @@ let
       ''
         python ${./python}/project.py \
           "${closureYaml}" \
+          "${stdlibInfos}" \
           '${lib.generators.toJSON { } overridesOnly}' \
           "${dependencyUuidToRepoYaml}" \
           "$out"
@@ -299,6 +305,7 @@ runCommand "julia-${julia.version}-env"
       inherit overridesToml;
       inherit project;
       inherit projectAndDepot;
+      inherit stdlibInfos;
     };
   }
   (

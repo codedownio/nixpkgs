@@ -68,7 +68,8 @@ with open(out_path, "w") as f:
     treehash = "{version_to_use["git-tree-sha1"]}";
   }};\n""")
     else:
-      # print("Warning: couldn't figure out what to do with pkg in sources_nix.py", pkg)
+      # This is probably a stdlib
+      # print("WARNING: couldn't figure out what to do with pkg in sources_nix.py", pkg)
       pass
 
   f.write("}")

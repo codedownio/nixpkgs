@@ -9,12 +9,16 @@ import yaml
 
 
 desired_packages_path = Path(sys.argv[1])
-package_overrides = json.loads(sys.argv[2])
-dependencies_path = Path(sys.argv[3])
-out_path = Path(sys.argv[4])
+stdlib_infos_path = Path(sys.argv[2])
+package_overrides = json.loads(sys.argv[3])
+dependencies_path = Path(sys.argv[4])
+out_path = Path(sys.argv[5])
 
 with open(desired_packages_path, "r") as f:
   desired_packages = yaml.safe_load(f) or []
+
+with open(stdlib_infos_path, "r") as f:
+  stdlib_infos = yaml.safe_load(f) or []
 
 with open(dependencies_path, "r") as f:
   uuid_to_store_path = yaml.safe_load(f)
@@ -24,8 +28,6 @@ result = {
 }
 
 for pkg in desired_packages:
-  path = uuid_to_store_path.get(pkg["uuid"], None)
-
   if pkg["uuid"] in package_overrides:
     info = package_overrides[pkg["uuid"]]
     result["deps"][info["name"]].append({
@@ -33,7 +35,15 @@ for pkg in desired_packages:
       # "deps": pkg["deps"],
       "path": path,
     })
-  elif path:
+    continue
+
+  path = uuid_to_store_path.get(pkg["uuid"], None)
+  isStdLib = False
+  if pkg["uuid"] in stdlib_infos["stdlibs"]:
+    path = stdlib_infos["stdlib_root"] + "/" + stdlib_infos["stdlibs"][pkg["uuid"]]["name"]
+    isStdLib = True
+
+  if path:
     project_toml = toml.load(Path(path) / "Project.toml")
 
     deps = []
@@ -52,10 +62,10 @@ for pkg in desired_packages:
       "deps": deps or None,
       "weakdeps": weak_deps or None,
       "extensions": project_toml.get("extensions", {}) or None,
-      "path": path,
+      "path": None if isStdLib else path ,
     })
   else:
-    # This should be a stdlib package. TODO: check?
+    print("WARNING: adding a package that we didn't have a path for, and it doesn't seem to be a stdlib", pkg)
     result["deps"][pkg["name"]].append({
       "version": pkg["version"],
       "uuid": pkg["uuid"],
