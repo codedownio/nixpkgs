@@ -54,6 +54,9 @@ let
             for (dep_name, dep_uuid) in pairs(deps_map[spec.uuid])
                 println(io, "  - \"$(dep_name)\"")
             end
+            if spec.name in input
+                println(io, "  is_input: true")
+            end
         end
     end
   '';

@@ -181,8 +181,8 @@ let
           "${dependencyUuidToRepoYaml}" \
           "$out"
       '';
-  manifestToml =
-    runCommand "Manifest.toml"
+  project =
+    runCommand "julia-project"
       {
         buildInputs = [
           (python3.withPackages (
@@ -195,8 +195,7 @@ let
         ];
       }
       ''
-        python ${./python}/manifest_toml.py \
-          "${augmentedRegistry}" \
+        python ${./python}/project.py \
           "${closureYaml}" \
           '${lib.generators.toJSON { } overridesOnly}' \
           "${dependencyUuidToRepoYaml}" \
@@ -269,7 +268,7 @@ let
       precompile
       ;
     julia = juliaWrapped;
-    inherit manifestToml;
+    inherit project;
     registry = minimalRegistry;
     packageNames =
       if makeTransitiveDependenciesImportable then
@@ -296,10 +295,10 @@ runCommand "julia-${julia.version}-env"
       inherit dependencyUuidToInfoYaml;
       inherit dependencyUuidToRepoYaml;
       inherit minimalRegistry;
-      inherit manifestToml;
       inherit artifactsNix;
       inherit overridesJson;
       inherit overridesToml;
+      inherit project;
       inherit projectAndDepot;
     };
   }

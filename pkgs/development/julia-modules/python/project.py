@@ -1,17 +1,17 @@
 
 from collections import defaultdict
 import json
+import os
 from pathlib import Path
 import sys
 import toml
 import yaml
 
 
-registry_path = Path(sys.argv[1])
-desired_packages_path = Path(sys.argv[2])
-package_overrides = json.loads(sys.argv[3])
-dependencies_path = Path(sys.argv[4])
-out_path = Path(sys.argv[5])
+desired_packages_path = Path(sys.argv[1])
+package_overrides = json.loads(sys.argv[2])
+dependencies_path = Path(sys.argv[3])
+out_path = Path(sys.argv[4])
 
 with open(desired_packages_path, "r") as f:
   desired_packages = yaml.safe_load(f) or []
@@ -63,7 +63,16 @@ for pkg in desired_packages:
       "deps": pkg["deps"]
     })
 
-with open(out_path, "w") as f:
+os.makedirs(out_path)
+
+with open(out_path / "Manifest.toml", "w") as f:
   f.write('julia_version = "1.10.0"\n')
   f.write('manifest_format = "2.0"\n\n')
   toml.dump(result, f)
+
+with open(out_path / "Project.toml", "w") as f:
+  f.write('[deps]\n')
+
+  for pkg in desired_packages:
+    if pkg.get("is_input", False):
+      f.write(f'''{pkg["name"]} = "{pkg["uuid"]}"\n''')

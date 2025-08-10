@@ -12,10 +12,10 @@
   closureYaml,
   extraLibs,
   juliaCpuTarget,
-  manifestToml,
   overridesToml,
   packageImplications,
   packageNames,
+  project,
   precompile,
   registry,
 }:
@@ -45,7 +45,7 @@ runCommand "julia-depot"
       (python3.withPackages (ps: with ps; [ pyyaml ]))
     ]
     ++ extraLibs;
-    inherit manifestToml precompile registry;
+    inherit precompile project registry;
   }
   (
     ''
@@ -53,12 +53,14 @@ runCommand "julia-depot"
 
       echo "Building Julia depot and project with the following inputs"
       echo "Julia: ${julia}"
-      echo "Manifest.toml: $manifestToml"
+      echo "Project: $project"
       echo "Registry: $registry"
       echo "Overrides ${overridesToml}"
 
       mkdir -p $out/project
       export JULIA_PROJECT="$out/project"
+      cp "$project/Manifest.toml" "$JULIA_PROJECT/Manifest.toml"
+      cp "$project/Project.toml" "$JULIA_PROJECT/Project.toml"
 
       mkdir -p $out/depot/artifacts
       export JULIA_DEPOT_PATH="$out/depot"
@@ -100,15 +102,13 @@ runCommand "julia-depot"
       # (Note this is different from JULIA_CI).
       export CI=true
 
-      cp "$manifestToml" ./Manifest.toml
-
       julia -e ' \
         import Pkg
         import Pkg.Types: PRESERVE_NONE
 
         Pkg.Registry.add(Pkg.RegistrySpec(path="${registry}"))
 
-        Pkg.activate(".")
+        Pkg.activate()
         Pkg.instantiate()
 
         if "precompile" in keys(ENV) && ENV["precompile"] != "0" && ENV["precompile"] != ""
