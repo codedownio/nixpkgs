@@ -181,6 +181,28 @@ let
           "${dependencyUuidToRepoYaml}" \
           "$out"
       '';
+  manifestToml =
+    runCommand "Manifest.toml"
+      {
+        buildInputs = [
+          (python3.withPackages (
+            ps: with ps; [
+              toml
+              pyyaml
+            ]
+          ))
+          git
+        ];
+      }
+      ''
+        python ${./python}/manifest_toml.py \
+          "${augmentedRegistry}" \
+          "${closureYaml}" \
+          '${lib.generators.toJSON { } overridesOnly}' \
+          "${dependencyUuidToRepoYaml}" \
+          "$out"
+      '';
+
 
   # Next, deal with artifacts. Scan each artifacts file individually and generate a Nix file that
   # produces the desired Overrides.toml.
@@ -247,6 +269,7 @@ let
       precompile
       ;
     julia = juliaWrapped;
+    inherit manifestToml;
     registry = minimalRegistry;
     packageNames =
       if makeTransitiveDependenciesImportable then
@@ -273,6 +296,7 @@ runCommand "julia-${julia.version}-env"
       inherit dependencyUuidToInfoYaml;
       inherit dependencyUuidToRepoYaml;
       inherit minimalRegistry;
+      inherit manifestToml;
       inherit artifactsNix;
       inherit overridesJson;
       inherit overridesToml;

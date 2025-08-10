@@ -41,6 +41,9 @@ with open(out_path, "w") as f:
     treehash = "{treehash}";
   }};\n""")
     elif uuid in registry["packages"]:
+      # The treehash is missing for stdlib packages. Don't bother downloading these.
+      if (not ("tree_hash" in pkg)) or pkg["tree_hash"] == "nothing": continue
+
       registry_info = registry["packages"][uuid]
       path = registry_info["path"]
       packageToml = toml.load(registry_path / path / "Package.toml")

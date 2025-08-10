@@ -12,6 +12,7 @@
   closureYaml,
   extraLibs,
   juliaCpuTarget,
+  manifestToml,
   overridesToml,
   packageImplications,
   packageNames,
@@ -44,7 +45,7 @@ runCommand "julia-depot"
       (python3.withPackages (ps: with ps; [ pyyaml ]))
     ]
     ++ extraLibs;
-    inherit precompile registry;
+    inherit manifestToml precompile registry;
   }
   (
     ''
@@ -52,6 +53,7 @@ runCommand "julia-depot"
 
       echo "Building Julia depot and project with the following inputs"
       echo "Julia: ${julia}"
+      echo "Manifest.toml: $manifestToml"
       echo "Registry: $registry"
       echo "Overrides ${overridesToml}"
 
@@ -98,36 +100,24 @@ runCommand "julia-depot"
       # (Note this is different from JULIA_CI).
       export CI=true
 
+      cp "$manifestToml" ./Manifest.toml
+
       julia -e ' \
         import Pkg
         import Pkg.Types: PRESERVE_NONE
 
         Pkg.Registry.add(Pkg.RegistrySpec(path="${registry}"))
 
-        input = ${lib.generators.toJSON { } packageNames} ::Vector{String}
+        Pkg.activate(".")
+        Pkg.instantiate()
 
-        if isfile("extra_package_names.txt")
-          append!(input, readlines("extra_package_names.txt"))
-        end
-
-        input = unique(input)
-
-        if !isempty(input)
-          println("Adding packages: " * join(input, " "))
-          Pkg.add(input; preserve=PRESERVE_NONE)
-          Pkg.instantiate()
-
-          if "precompile" in keys(ENV) && ENV["precompile"] != "0" && ENV["precompile"] != ""
-            if isdefined(Sys, :CPU_NAME)
-              println("Precompiling with CPU_NAME = " * Sys.CPU_NAME)
-            end
-
-            Pkg.precompile()
+        if "precompile" in keys(ENV) && ENV["precompile"] != "0" && ENV["precompile"] != ""
+          if isdefined(Sys, :CPU_NAME)
+            println("Precompiling with CPU_NAME = " * Sys.CPU_NAME)
           end
-        end
 
-        # Remove the registry to save space
-        Pkg.Registry.rm("General")
+          Pkg.precompile()
+        end
       '
     ''
   )
