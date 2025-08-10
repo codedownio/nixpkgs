@@ -49,23 +49,3 @@ foreach(pkg -> ctx.env.project.deps[pkg.name] = pkg.uuid, pkgs)
 orig_pkgs = deepcopy(pkgs)
 
 pkgs, deps_map = _resolve(ctx.io, ctx.env, ctx.registries, pkgs, PRESERVE_NONE, ctx.julia_version)
-
-# println("resolved pkgs: $pkgs")
-
-# Check for weak dependencies, which appear on the RHS of the deps_map but not in pkgs.
-# uuid_to_name = Dict()
-# for pkg in pkgs
-#     uuid_to_name[pkg.uuid] = pkg.name
-# end
-# weak_name_to_uuid = Dict()
-# for (uuid, deps) in pairs(deps_map)
-#     for (dep_name, dep_uuid) in pairs(deps)
-#         if !haskey(uuid_to_name, dep_uuid)
-#             weak_name_to_uuid[dep_name] = dep_uuid
-#         end
-#     end
-# end
-
-# if !isempty(weak_name_to_uuid)
-#     println("Found weak dependencies: $(weak_name_to_uuid)")
-# end

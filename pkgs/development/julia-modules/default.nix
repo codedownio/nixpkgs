@@ -256,8 +256,7 @@ let
           "$out"
       '';
 
-  # Build a Julia project and depot. The project contains Project.toml/Manifest.toml, while the
-  # depot contains package build products (including the precompiled libraries, if precompile=true)
+  # Build a Julia project and depot under $out/project and $out/depot respectively
   projectAndDepot = callPackage ./depot.nix {
     inherit
       closureYaml
