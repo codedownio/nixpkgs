@@ -24,10 +24,10 @@ import Data.Text as T hiding (count)
 import qualified Data.Vector as V
 import qualified Data.Yaml as Yaml
 import GHC.Generics
-import Options.Applicative
+import Options.Applicative hiding (info)
 import System.Exit
 import System.FilePath
-import Test.Sandwich hiding (info)
+import Test.Sandwich
 import UnliftIO.MVar
 import UnliftIO.Process
 
@@ -98,7 +98,9 @@ testExpr _args name expr = do
       let cp = proc "nix" ["build", "--impure", "--no-link", "--json", "--expr", [i|with import ../../../../. {}; #{expr}|]]
       output <- readCreateProcessWithLogging cp ""
       juliaPath <- case A.eitherDecode (BL8.pack output) of
-        Right (A.Array ((V.!? 0) -> Just (A.Object (aesonLookup "outputs" -> Just (A.Object (aesonLookup "out" -> Just (A.String t))))))) -> pure (JuliaPath ((T.unpack t) </> "bin" </> "julia"))
+        Right (A.Array ((V.!? 0) -> Just (A.Object (aesonLookup "outputs" -> Just (A.Object (aesonLookup "out" -> Just (A.String t))))))) -> do
+          info [i|built: #{t}|]
+          pure (JuliaPath ((T.unpack t) </> "bin" </> "julia"))
         x -> expectationFailure ("Couldn't parse output: " <> show x)
 
       getContext julia >>= flip modifyMVar_ (const $ return (Just juliaPath))
