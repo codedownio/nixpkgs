@@ -8,6 +8,9 @@ let
     using Pkg
     open(ENV["out"], "w") do io
         println(io, "stdlib_root: \"$(Sys.STDLIB)\"")
+
+        println(io, "julia_version: \"$(string(VERSION))\"")
+
         stdlibs = Pkg.Types.stdlibs()
         println(io, "stdlibs:")
         for (uuid, (name, version)) in stdlibs

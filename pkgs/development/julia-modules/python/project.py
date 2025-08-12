@@ -32,8 +32,7 @@ for pkg in desired_packages:
     info = package_overrides[pkg["uuid"]]
     result["deps"][info["name"]].append({
       "uuid": pkg["uuid"],
-      # "deps": pkg["deps"],
-      "path": path,
+      "path": info["src"],
     })
     continue
 
@@ -75,7 +74,7 @@ for pkg in desired_packages:
 os.makedirs(out_path)
 
 with open(out_path / "Manifest.toml", "w") as f:
-  f.write('julia_version = "1.10.0"\n')
+  f.write(f'julia_version = "{stdlib_infos["julia_version"]}"\n')
   f.write('manifest_format = "2.0"\n\n')
   toml.dump(result, f)
 

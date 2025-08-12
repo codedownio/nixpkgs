@@ -67,8 +67,7 @@ runCommand "julia-depot"
       cp ${overridesToml} $out/depot/artifacts/Overrides.toml
 
       # These can be useful to debug problems
-      # export JULIA_DEBUG=Pkg
-      # export JULIA_DEBUG=loading
+      # export JULIA_DEBUG=Pkg,loading
 
       ${setJuliaSslCaRootsPath}
 
@@ -108,7 +107,7 @@ runCommand "julia-depot"
 
         Pkg.Registry.add(Pkg.RegistrySpec(path="${registry}"))
 
-        Pkg.activate()
+        # No need to Pkg.activate() since we set JULIA_PROJECT above
         Pkg.instantiate()
 
         if "precompile" in keys(ENV) && ENV["precompile"] != "0" && ENV["precompile"] != ""
