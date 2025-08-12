@@ -22,4 +22,8 @@
   # MPICH_jll
   # Same problem with libquadmath.so.0
   "7cb0a576-ebde-5e09-9194-50597f1243b4" = [ "gcc.cc.lib" ];
+
+  # Arpack_jll
+  # Same problem with libquadmath.so.0
+  "68821587-b530-5797-8361-c406ea357684" = [ "gcc.cc.lib" ];
 }
