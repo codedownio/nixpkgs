@@ -52,9 +52,9 @@ def get_archive_derivation(uuid, artifact_name, url, sha256, closure_dependencie
                                [{" ".join(["uuid-" + x for x in depends_on])}];
             in ''
               find $out -type f -executable -exec \
-                patchelf --set-rpath \$ORIGIN:\$ORIGIN/../lib:${{lib.makeLibraryPath (["$out" glibc] ++ libs ++ (with pkgs; [{" ".join(other_libs)}]))}} {{}} \;
+                patchelf --set-rpath \\$ORIGIN:\\$ORIGIN/../lib:${{lib.makeLibraryPath (["$out" glibc] ++ libs ++ (with pkgs; [{" ".join(other_libs)}]))}} {{}} \\;
               find $out -type f -executable -exec \
-                patchelf --set-interpreter ${{glibc}}/lib/ld-linux-x86-64.so.2 {{}} \;
+                patchelf --set-interpreter ${{glibc}}/lib/ld-linux-x86-64.so.2 {{}} \\;
             ''"""
 
   return f"""stdenv.mkDerivation {{
