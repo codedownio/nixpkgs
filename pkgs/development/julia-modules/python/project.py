@@ -64,8 +64,12 @@ for pkg in desired_packages:
       "deps": deps or None,
       "weakdeps": weak_deps or None,
       "extensions": project_toml.get("extensions", {}) or None,
+
+      # We *don't* set "path" here, because then Julia will try to use the
+      # read-only Nix store path instead of cloning to the depot. This will
+      # cause packages like Conda.jl to fail during the Pkg.build() step.
+      #
       # "path": None if isStdLib else path ,
-      # "repo-url": None if isStdLib else "file://" + path ,
     })
   else:
     print("WARNING: adding a package that we didn't have a path for, and it doesn't seem to be a stdlib", pkg)
