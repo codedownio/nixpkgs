@@ -24,7 +24,7 @@ def ensure_version_valid(version):
   Ensure a version string is a valid Julia-parsable version.
   It doesn't really matter what it looks like as it's just used for overrides.
   """
-  return re.sub('[^0-9\.]','', version)
+  return re.sub('[^0-9.]','', version)
 
 with open(out_path, "w") as f:
   f.write("{fetchgit}:\n")
