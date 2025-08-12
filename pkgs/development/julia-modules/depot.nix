@@ -108,10 +108,12 @@ runCommand "julia-depot"
         Pkg.Registry.add(Pkg.RegistrySpec(path="${registry}"))
 
         # No need to Pkg.activate() since we set JULIA_PROJECT above
+        println("Running Pkg.instantiate()")
         Pkg.instantiate()
 
         # Build is a separate step from instantiate.
         # Needed for packages like Conda.jl to set themselves up.
+        println("Running Pkg.build()")
         Pkg.build()
 
         if "precompile" in keys(ENV) && ENV["precompile"] != "0" && ENV["precompile"] != ""
