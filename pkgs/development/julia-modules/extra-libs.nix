@@ -18,4 +18,8 @@
   # ERROR: LoadError: InitError: could not load library "/nix/store/2pjhkl10v2gcrag83flggpnb2l2jcsnb-OpenSpecFun/lib/libopenspecfun.so"
   # libquadmath.so.0: cannot open shared object file: No such file or directory
   "efe28fd5-8261-553b-a9e1-b2916fc3738e" = [ "gcc.cc.lib" ];
+
+  # MPICH_jll
+  # Same problem with libquadmath.so.0
+  "7cb0a576-ebde-5e09-9194-50597f1243b4" = [ "gcc.cc.lib" ];
 }
