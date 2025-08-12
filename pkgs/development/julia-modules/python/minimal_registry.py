@@ -24,7 +24,7 @@ with open(desired_packages_path, "r") as f:
 
 uuid_to_versions = defaultdict(list)
 for pkg in desired_packages:
-    uuid_to_versions[pkg["uuid"]].append(pkg["version"])
+  uuid_to_versions[pkg["uuid"]].append(pkg["version"])
 
 with open(dependencies_path, "r") as f:
   uuid_to_store_path = yaml.safe_load(f)
