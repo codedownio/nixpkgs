@@ -12,8 +12,8 @@
 
 module Main (main) where
 
-import Control.Exception
 import Control.Monad
+import Control.Monad.IO.Class
 import Data.Aeson as A hiding (Options, defaultOptions)
 import qualified Data.Aeson.Key             as A
 import qualified Data.Aeson.KeyMap          as HM
@@ -28,8 +28,10 @@ import Options.Applicative hiding (info)
 import System.Exit
 import System.FilePath
 import Test.Sandwich
+import UnliftIO.Exception
 import UnliftIO.MVar
 import UnliftIO.Process
+import UnliftIO.QSem
 
 
 data Args = Args {
@@ -71,9 +73,11 @@ main = do
     miscTests args
 
     describe ("Building environments for top " <> show topN <> " Julia packages") $
-      parallelN parallelism $
-        forM_ (L.take topN namesAndCounts) $ \(NameAndCount {..}) ->
-          testExpr args name [i|#{juliaAttr}.withPackages ["#{name}"]|]
+      introduce "Introduce parallel semaphore" parallelSemaphore (liftIO $ newQSem parallelism) (const $ return ()) $
+      parallel $
+      forM_ (L.take topN namesAndCounts) $ \(NameAndCount {..}) ->
+      around "Claim semaphore" claimRunSlot $
+      testExpr args name [i|#{juliaAttr}.withPackages ["#{name}"]|]
 
 miscTests :: Args -> SpecFree ctx IO ()
 miscTests args@(Args {..}) = describe "Misc tests" $ do
@@ -115,3 +119,8 @@ testExpr _args name expr = do
   where
     aesonLookup :: Text -> HM.KeyMap v -> Maybe v
     aesonLookup = HM.lookup . A.fromText
+
+claimRunSlot :: (HasParallelSemaphore ctx) => ExampleT ctx IO a -> ExampleT ctx IO ()
+claimRunSlot f = do
+  s <- getContext parallelSemaphore
+  bracket_ (liftIO $ waitQSem s) (liftIO $ signalQSem s) (void f)
