@@ -43,17 +43,27 @@ for pkg in desired_packages:
     isStdLib = True
 
   if path:
-    project_toml = toml.load(Path(path) / "Project.toml")
+    if (Path(path) / "Project.toml").exists():
+      project_toml = toml.load(Path(path) / "Project.toml")
 
-    deps = []
-    weak_deps = project_toml.get("weakdeps", {})
+      deps = []
+      weak_deps = project_toml.get("weakdeps", {})
+      extensions = project_toml.get("extensions", {})
 
-    if "deps" in project_toml:
-      # Build up deps for the manifest, excluding weak deps
-      weak_deps_uuids = weak_deps.values()
-      for (dep_name, dep_uuid) in project_toml["deps"].items():
-        if not (dep_uuid in weak_deps_uuids):
-          deps.append(dep_name)
+      if "deps" in project_toml:
+        # Build up deps for the manifest, excluding weak deps
+        weak_deps_uuids = weak_deps.values()
+        for (dep_name, dep_uuid) in project_toml["deps"].items():
+          if not (dep_uuid in weak_deps_uuids):
+            deps.append(dep_name)
+    else:
+      # Not all projects have a Project.toml. In this case, use the deps we
+      # calculated from the package resolve step. This isn't perfect since it
+      # will fail to properly split out weak deps, but it's better than nothing.
+      print(f"""WARNING: package {pkg["name"]} didn't have a Project.toml in {path}""")
+      deps = pkg.get("deps", [])
+      weak_deps = {}
+      extensions = {}
 
     tree_hash = pkg.get("tree_hash", "")
 
@@ -63,7 +73,7 @@ for pkg in desired_packages:
       "git-tree-sha1": (tree_hash if tree_hash != "nothing" else None) or None,
       "deps": deps or None,
       "weakdeps": weak_deps or None,
-      "extensions": project_toml.get("extensions", {}) or None,
+      "extensions": extensions or None,
 
       # We *don't* set "path" here, because then Julia will try to use the
       # read-only Nix store path instead of cloning to the depot. This will
