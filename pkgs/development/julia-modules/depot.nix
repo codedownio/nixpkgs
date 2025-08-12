@@ -110,6 +110,10 @@ runCommand "julia-depot"
         # No need to Pkg.activate() since we set JULIA_PROJECT above
         Pkg.instantiate()
 
+        # Build is a separate step from instantiate.
+        # Needed for packages like Conda.jl to set themselves up.
+        Pkg.build()
+
         if "precompile" in keys(ENV) && ENV["precompile"] != "0" && ENV["precompile"] != ""
           if isdefined(Sys, :CPU_NAME)
             println("Precompiling with CPU_NAME = " * Sys.CPU_NAME)

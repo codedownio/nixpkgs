@@ -55,13 +55,17 @@ for pkg in desired_packages:
         if not (dep_uuid in weak_deps_uuids):
           deps.append(dep_name)
 
+    tree_hash = pkg.get("tree_hash", "")
+
     result["deps"][pkg["name"]].append({
       "version": pkg["version"],
       "uuid": pkg["uuid"],
+      "git-tree-sha1": (tree_hash if tree_hash != "nothing" else None) or None,
       "deps": deps or None,
       "weakdeps": weak_deps or None,
       "extensions": project_toml.get("extensions", {}) or None,
-      "path": None if isStdLib else path ,
+      # "path": None if isStdLib else path ,
+      # "repo-url": None if isStdLib else "file://" + path ,
     })
   else:
     print("WARNING: adding a package that we didn't have a path for, and it doesn't seem to be a stdlib", pkg)

@@ -103,3 +103,9 @@ with open(out_path / "Registry.toml", "w") as f:
     toml.dump(registry, f)
 
 shutil.copy2(registry_path / "Registry.toml", out_path / "Registry.toml")
+
+# Copy the "julia" package
+if (registry_path / "J" / "julia").exists() and not (out_path / "J" / "julia").exists():
+  if not (out_path / "J").exists():
+    os.makedirs(out_path / "J")
+  shutil.copytree(registry_path / "J" / "julia", out_path / "J" / "julia")
