@@ -61,7 +61,7 @@ for pkg in desired_packages:
       # calculated from the package resolve step. This isn't perfect since it
       # will fail to properly split out weak deps, but it's better than nothing.
       print(f"""WARNING: package {pkg["name"]} didn't have a Project.toml in {path}""")
-      deps = pkg.get("deps", [])
+      deps = [x["name"] for x in pkg.get("deps", [])]
       weak_deps = {}
       extensions = {}
 
@@ -86,7 +86,7 @@ for pkg in desired_packages:
     result["deps"][pkg["name"]].append({
       "version": pkg["version"],
       "uuid": pkg["uuid"],
-      "deps": pkg["deps"]
+      "deps": [x["name"] for x in pkg["deps"]]
     })
 
 os.makedirs(out_path)

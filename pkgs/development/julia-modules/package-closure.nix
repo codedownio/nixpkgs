@@ -52,7 +52,8 @@ let
             end
             println(io, "  deps: ")
             for (dep_name, dep_uuid) in pairs(deps_map[spec.uuid])
-                println(io, "  - \"$(dep_name)\"")
+                println(io, "  - name: \"$(dep_name)\"")
+                println(io, "    uuid: \"$(dep_uuid)\"")
             end
             if spec.name in input
                 println(io, "  is_input: true")

@@ -31,7 +31,8 @@ with open(dependencies_path, "r") as f:
 
 os.makedirs(out_path)
 
-registry = toml.load(registry_path / "Registry.toml")
+full_registry = toml.load(registry_path / "Registry.toml")
+registry = full_registry.copy()
 registry["packages"] = {k: v for k, v in registry["packages"].items() if k in uuid_to_versions}
 
 for (uuid, versions) in uuid_to_versions.items():
@@ -99,13 +100,29 @@ for (uuid, versions) in uuid_to_versions.items():
       with open(out_path / path / "Package.toml", "w") as f:
         toml.dump(package_toml, f)
 
+# Look for missing weak deps and include them. This can happen when our initial
+# resolve step finds dependencies, but we fail to resolve them at the project.py
+# stage. Usually this happens because the package that depends on them does so
+# as a weak dep, but doesn't have a Package.toml in its repo making this clear.
+for pkg in desired_packages:
+  for dep in (pkg.get("deps", []) or []):
+    uuid = dep["uuid"]
+    if not uuid in uuid_to_versions:
+      entry = full_registry["packages"].get(uuid)
+      if not entry:
+        print(f"""WARNING: found missing UUID but couldn't resolve it: {uuid}""")
+        continue
+
+      # Add this entry back to the minimal Registry.toml
+      registry["packages"][uuid] = entry
+
+      # Bring over the Package.toml
+      path = Path(entry["path"])
+      if (out_path / path / "Package.toml").exists():
+        continue
+      Path(out_path / path).mkdir(parents=True, exist_ok=True)
+      shutil.copy2(registry_path / path / "Package.toml", out_path / path / "Package.toml")
+
+# Finally, dump the Registry.toml
 with open(out_path / "Registry.toml", "w") as f:
     toml.dump(registry, f)
-
-shutil.copy2(registry_path / "Registry.toml", out_path / "Registry.toml")
-
-# Copy the "julia" package
-if (registry_path / "J" / "julia").exists() and not (out_path / "J" / "julia").exists():
-  if not (out_path / "J").exists():
-    os.makedirs(out_path / "J")
-  shutil.copytree(registry_path / "J" / "julia", out_path / "J" / "julia")

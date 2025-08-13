@@ -14,7 +14,6 @@
   juliaCpuTarget,
   overridesToml,
   packageImplications,
-  packageNames,
   project,
   precompile,
   registry,

@@ -11,6 +11,7 @@
 
   # Artifacts dependencies
   fetchurl,
+  gcc,
   glibc,
   pkgs,
   stdenv,
@@ -247,7 +248,7 @@ let
         ;
     }
     // lib.optionalAttrs (!stdenv.targetPlatform.isDarwin) {
-      inherit glibc;
+      inherit gcc glibc;
     }
   );
   overridesJson = writeTextFile {
@@ -275,11 +276,6 @@ let
     julia = juliaWrapped;
     inherit project;
     registry = minimalRegistry;
-    packageNames =
-      if makeTransitiveDependenciesImportable then
-        lib.mapAttrsToList (uuid: info: info.name) dependencyUuidToInfo
-      else
-        packageNames;
   };
 
 in

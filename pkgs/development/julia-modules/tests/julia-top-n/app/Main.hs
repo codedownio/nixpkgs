@@ -69,7 +69,7 @@ main = do
     Left err -> throwIO $ userError ("Couldn't decode names and counts YAML file: " <> show err)
     Right x -> pure x
 
-  runSandwichWithCommandLineArgs' defaultOptions argsParser $ do
+  runSandwichWithCommandLineArgs' defaultOptions argsParser $ parallel $ do
     miscTests args
 
     describe ("Building environments for top " <> show topN <> " Julia packages") $
@@ -92,6 +92,9 @@ miscTests args@(Args {..}) = describe "Misc tests" $ do
                                         };
                                       };
                                     }) [ "HelloWorld" ]|]
+
+  describe "misc cases" $ do
+    testExpr args "Optimization" [iii|(#{juliaAttr}.withPackages) [ "Optimization" "OptimizationOptimJL" ]|]
 
 -- * Low-level
 
