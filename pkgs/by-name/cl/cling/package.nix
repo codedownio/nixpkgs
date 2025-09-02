@@ -40,39 +40,47 @@ let
     repo = "llvm-project";
     # cling-llvm18 branch
     rev = "156e947058a46ecc1785f98aa9abb8cbfaa45aa7";
-    sha256 = "sha256-sk/KJn0KiQ7Jz1VXdcO3Omu2eJMcpmfnxyVwD4vI0Dk=";
-    sparseCheckout = [ "clang" ];
+    sha256 = "sha256-JGteapyujU5w81DsfPQfTq76cYHgk5PbAFbdYfYIDo4=";
+    # sparseCheckout = [ "clang" ];
+  };
+
+  version = "1.2";
+
+  clingSrc = fetchFromGitHub {
+    owner = "root-project";
+    repo = "cling";
+    rev = "v${version}";
+    sha256 = "sha256-ay9FXANJmB/+AdnCR4WOKHuPm6P88wLqoOgiKJwJ8JM=";
   };
 
   llvm = llvmPackages_18.llvm.override { enableSharedLibraries = false; };
 
-  unwrapped = stdenv.mkDerivation rec {
+  unwrapped = stdenv.mkDerivation {
     pname = "cling-unwrapped";
-    version = "1.2";
+    inherit version;
 
     src = "${clangSrc}";
 
-    clingSrc = fetchFromGitHub {
-      owner = "root-project";
-      repo = "cling";
-      rev = "v${version}";
-      sha256 = "sha256-ay9FXANJmB/+AdnCR4WOKHuPm6P88wLqoOgiKJwJ8JM=";
-    };
-
-    prePatch = ''
-      echo "add_llvm_external_project(cling)" >> clang/tools/CMakeLists.txt
-
-      cp -r $clingSrc clang/tools/cling
-      chmod -R a+w clang/tools/cling
-    '';
 
     preConfigure = ''
-      cd clang
-    '';
+      echo AAAAAAAAAAAAA
+      ls -lhtr
+      echo BBBBBBBBBBBBB
+      echo "llvm.dev: ${llvm.dev}"
+      echo "llvm.src: ${llvm.src}"
 
-    patches = [
-      ./no-clang-cpp.patch
-    ];
+      # Apply the Parser fix patch to cling source
+      cp -r ${clingSrc} cling-source
+      chmod -R u+w cling-source
+      pushd cling-source
+      patch -p1 < ${builtins.fetchurl {
+        url = "https://github.com/root-project/cling/commit/cd4d1d8c4963620a6a84834948845df81fbbd70b.patch";
+        sha256 = "sha256-63UxMOSrpGOS81BYePaQjtV6y9Wv0fs6nO4gdBMCDig=";
+      }}
+      popd
+
+      cd llvm
+    '';
 
     nativeBuildInputs = [
       python3
@@ -87,27 +95,36 @@ let
 
     strictDeps = true;
 
-    # LLVM_DIR="${llvm.dev}/lib/cmake/llvm";
-
     cmakeFlags = [
-      "-DLLVM_DIR=${llvm.dev}/lib/cmake/llvm"
-      "-DLLVM_BINARY_DIR=${llvm.out}"
-      "-DLLVM_CONFIG=${llvm.dev}/bin/llvm-config"
-      "-DLLVM_LIBRARY_DIR=${llvm.lib}/lib"
-      "-DLLVM_MAIN_INCLUDE_DIR=${llvm.dev}/include"
-      "-DLLVM_TABLEGEN_EXE=${llvm.out}/bin/llvm-tblgen"
-      "-DLLVM_TOOLS_BINARY_DIR=${llvm.out}/bin"
-      "-DLLVM_BUILD_TOOLS=Off"
-      "-DLLVM_TOOL_CLING_BUILD=ON"
+      "-DLLVM_EXTERNAL_PROJECTS=cling"
+      "-DLLVM_EXTERNAL_CLING_SOURCE_DIR=/build/source/cling-source"
+      "-DLLVM_ENABLE_PROJECTS=clang"
+      "-DLLVM_TARGETS_TO_BUILD=host;NVPTX"
+
+      # "-DLLVM_DIR=${llvm.dev}/lib/cmake/llvm"
+      # "-DLLVM_CONFIG=${llvm.dev}/bin/llvm-config"
+
+      # "-DLLVM_BINARY_DIR=${llvm.out}"
+      # "-DLLVM_LIBRARY_DIR=${llvm.lib}/lib"
+      # "-DLLVM_MAIN_INCLUDE_DIR=${llvm.dev}/include"
+      # "-DLLVM_TABLEGEN_EXE=${llvm.out}/bin/llvm-tblgen"
+      # "-DLLVM_TOOLS_BINARY_DIR=${llvm.out}/bin"
+
+      # "-DLLVM_BUILD_TOOLS=Off"
+      # "-DLLVM_TOOL_CLING_BUILD=ON"
       "-DLLVM_INCLUDE_TESTS=OFF"
 
-      "-DLLVM_TARGETS_TO_BUILD=host;NVPTX"
+      # "-DLLVM_COMMON_CMAKE_UTILS=${llvm.src}/cmake"
+
       "-DLLVM_ENABLE_RTTI=ON"
 
       # Setting -DCLING_INCLUDE_TESTS=ON causes the cling/tools targets to be built;
       # see cling/tools/CMakeLists.txt
-      "-DCLING_INCLUDE_TESTS=ON"
-      "-DCLANG-TOOLS=OFF"
+      # "-DCLING_INCLUDE_TESTS=ON"
+      # "-DCLANG-TOOLS=OFF"
+    ]
+    ++ lib.optionals (!debug) [
+      "-DCMAKE_BUILD_TYPE=Release"
     ]
     ++ lib.optionals debug [
       "-DCMAKE_BUILD_TYPE=Debug"
@@ -121,8 +138,10 @@ let
 
     postInstall = lib.optionalString (!stdenv.hostPlatform.isDarwin) ''
       mkdir -p $out/share/Jupyter
-      cp -r /build/clang/tools/cling/tools/Jupyter/kernel $out/share/Jupyter
+      cp -r /build/source/cling-source/tools/Jupyter/kernel $out/share/Jupyter
     '';
+
+    buildTargets = [ "cling" ];
 
     dontStrip = debug;
 
@@ -158,7 +177,7 @@ let
     "${llvm.lib}/lib"
 
     "-isystem"
-    "${lib.getLib unwrapped}/lib/clang/${llvmPackages_18.clang.version}/include"
+    "${lib.getLib unwrapped}/lib/clang/18/include"
   ]
   ++ lib.optionals useLLVMLibcxx [
     "-I"
