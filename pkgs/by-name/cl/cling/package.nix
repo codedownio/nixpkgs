@@ -90,7 +90,7 @@ let
 
     cmakeFlags = [
       "-DLLVM_EXTERNAL_PROJECTS=cling"
-      "-DLLVM_EXTERNAL_CLING_SOURCE_DIR=/build/source/cling-source"
+      "-DLLVM_EXTERNAL_CLING_SOURCE_DIR=../../cling-source"
       "-DLLVM_ENABLE_PROJECTS=clang"
       "-DLLVM_TARGETS_TO_BUILD=host;NVPTX"
       "-DLLVM_INCLUDE_TESTS=OFF"
