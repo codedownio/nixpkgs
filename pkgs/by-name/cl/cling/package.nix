@@ -61,15 +61,8 @@ let
 
     src = "${clangSrc}";
 
-
     preConfigure = ''
-      echo AAAAAAAAAAAAA
-      ls -lhtr
-      echo BBBBBBBBBBBBB
-      echo "llvm.dev: ${llvm.dev}"
-      echo "llvm.src: ${llvm.src}"
-
-      # Apply the Parser fix patch to cling source
+      # Patch a bug in calling new Parser(...) by backporting a fix
       cp -r ${clingSrc} cling-source
       chmod -R u+w cling-source
       pushd cling-source
@@ -100,28 +93,8 @@ let
       "-DLLVM_EXTERNAL_CLING_SOURCE_DIR=/build/source/cling-source"
       "-DLLVM_ENABLE_PROJECTS=clang"
       "-DLLVM_TARGETS_TO_BUILD=host;NVPTX"
-
-      # "-DLLVM_DIR=${llvm.dev}/lib/cmake/llvm"
-      # "-DLLVM_CONFIG=${llvm.dev}/bin/llvm-config"
-
-      # "-DLLVM_BINARY_DIR=${llvm.out}"
-      # "-DLLVM_LIBRARY_DIR=${llvm.lib}/lib"
-      # "-DLLVM_MAIN_INCLUDE_DIR=${llvm.dev}/include"
-      # "-DLLVM_TABLEGEN_EXE=${llvm.out}/bin/llvm-tblgen"
-      # "-DLLVM_TOOLS_BINARY_DIR=${llvm.out}/bin"
-
-      # "-DLLVM_BUILD_TOOLS=Off"
-      # "-DLLVM_TOOL_CLING_BUILD=ON"
       "-DLLVM_INCLUDE_TESTS=OFF"
-
-      # "-DLLVM_COMMON_CMAKE_UTILS=${llvm.src}/cmake"
-
       "-DLLVM_ENABLE_RTTI=ON"
-
-      # Setting -DCLING_INCLUDE_TESTS=ON causes the cling/tools targets to be built;
-      # see cling/tools/CMakeLists.txt
-      # "-DCLING_INCLUDE_TESTS=ON"
-      # "-DCLANG-TOOLS=OFF"
     ]
     ++ lib.optionals (!debug) [
       "-DCMAKE_BUILD_TYPE=Release"
