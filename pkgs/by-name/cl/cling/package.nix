@@ -34,16 +34,6 @@
 let
   stdenv = clangStdenv;
 
-  # The patched clang lives in the LLVM megarepo
-  clangSrc = fetchFromGitHub {
-    owner = "root-project";
-    repo = "llvm-project";
-    # cling-llvm18 branch
-    rev = "156e947058a46ecc1785f98aa9abb8cbfaa45aa7";
-    sha256 = "sha256-JGteapyujU5w81DsfPQfTq76cYHgk5PbAFbdYfYIDo4=";
-    # sparseCheckout = [ "clang" ];
-  };
-
   version = "1.2";
 
   clingSrc = fetchFromGitHub {
@@ -59,11 +49,19 @@ let
     pname = "cling-unwrapped";
     inherit version;
 
-    src = "${clangSrc}";
+    src = fetchFromGitHub {
+      owner = "root-project";
+      repo = "llvm-project";
+      # cling-llvm18 branch
+      rev = "156e947058a46ecc1785f98aa9abb8cbfaa45aa7";
+      sha256 = "sha256-JGteapyujU5w81DsfPQfTq76cYHgk5PbAFbdYfYIDo4=";
+    };
 
     preConfigure = ''
-      # Patch a bug in calling new Parser(...) by backporting a fix
       cp -r ${clingSrc} cling-source
+
+      # Patch a bug version 1.2 by backporting a fix. See
+      # https://github.com/root-project/cling/issues/556
       chmod -R u+w cling-source
       pushd cling-source
       patch -p1 < ${builtins.fetchurl {
