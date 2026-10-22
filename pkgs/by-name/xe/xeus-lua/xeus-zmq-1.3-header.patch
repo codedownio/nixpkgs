@@ -1,0 +1,16 @@
+src/main.cpp calls xeus::make_xserver_shell_main but only includes
+xeus-zmq/xserver_zmq_split.hpp, which re-exported that function in the xeus-zmq
+release 0.8.0 was written against. Since xeus-zmq 1.1.0 it lives in its own header.
+
+diff --git a/src/main.cpp b/src/main.cpp
+index 5c25f5a..9516b28 100644
+--- a/src/main.cpp
++++ b/src/main.cpp
+@@ -26,6 +26,7 @@
+ #include "xeus/xserver.hpp"
+ 
+ #include "xeus-zmq/xserver_zmq_split.hpp"
++#include "xeus-zmq/xserver_shell_main.hpp"
+ #include "xeus-zmq/xzmq_context.hpp"
+ 
+ 
